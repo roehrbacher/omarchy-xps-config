@@ -31,7 +31,7 @@ whatever it replaces, `./install.sh --dry-run` shows what would change, and
 
 ## What's in this repo
 
-- **Power and battery:** 80 % charge limit with a bar switch, last-chance
+- **Power and battery:** watts next to the battery % in the bar, 80 % charge limit with a bar switch, last-chance
   suspend at 5 %
 - **Touchpad:** speed, natural scrolling, three-finger gestures
 - **Audio:** speaker calibrator plugin, passthrough headphones (USB-C;
@@ -83,7 +83,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   Dell EC stays idle, the script cycles Custom -> Standard again (up to twice)
   until the battery reports Charging. `status` also prints the battery state.
 - `omarchy/plugins/timon.xps-power` – the stock battery bar widget
-  (`omarchy.power`, Omarchy 4.0.4) plus a **Limit charging to 80%** switch in
+  (`omarchy.power`, Omarchy 4.0.4) plus the charge/discharge power on the bar
+  (`12W 44% 󰁹`, from `/sys/class/power_supply/BAT*`, every 5 s; hidden when full,
+  idle, holding at the limit or under 0.5 W) and a **Limit charging to 80%** switch in
   its popup and a battery-with-heart icon on the bar while the limit is on.
   Replaces `omarchy.power` on the XPS bar (`barReplace` in `50-xps.json`).
   Re-copy `Panel.qml`/`Model.js` from `$OMARCHY_PATH/shell/plugins/panels/power/`

@@ -29,6 +29,9 @@ Panel {
   property string chargeLimitEnd: "80"
   property bool chargeLimitBusy: false
   readonly property bool showPercentage: setting("showPercentage", false) === true
+  // Charge/discharge power in W, shown left of the % (timon). "" = hidden
+  // (full, idle, holding at the limit, or under 0.5 W).
+  property string powerWatts: ""
   // With the percentage shown the button paints a text block wider than an
   // icon, so the open-panel mark takes the painted width instead of the
   // icon-sized fraction of the slot the fallback assumes.
@@ -292,6 +295,29 @@ Panel {
 
   Timer { interval: 5000; running: root.opened; repeat: true; onTriggered: root.refresh() }
 
+  // power_now, or current_now x voltage_now (this XPS has no power_now).
+  Process {
+    id: wattsProc
+    command: ["sh", "-c", "for b in /sys/class/power_supply/BAT*; do s=$(cat $b/status); p=$(cat $b/power_now 2>/dev/null) || p=$(( $(cat $b/current_now) * $(cat $b/voltage_now) / 1000000 )); echo \"$s $p\"; break; done"]
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var parts = text.trim().split(" ")
+        var w = Math.abs(Number(parts[1]) / 1000000)
+        var moving = parts[0] === "Charging" || parts[0] === "Discharging"
+        root.powerWatts = (moving && isFinite(w) && w >= 0.5) ? Math.round(w) + "W " : ""
+      }
+    }
+  }
+
+  Timer {
+    interval: 5000
+    running: root.batteryPresent && root.showPercentage
+    repeat: true
+    triggeredOnStart: true
+    onTriggered: if (!wattsProc.running) wattsProc.running = true
+  }
+
   // Rotate the status phrase while the panel is open and we're in a
   // rotating state (charging or on battery). The text swap is wrapped in a
   // fade so the changeover reads as one organism rather than a hard cut.
@@ -340,9 +366,9 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: root.showPercentage && !vertical
-      ? Math.round(root.batteryFraction * 100) + "% " + root.barIcon()
+      ? root.powerWatts + Math.round(root.batteryFraction * 100) + "% " + root.barIcon()
       : root.barIcon()
-    slotSize: Style.bar.iconSlot * (root.showPercentage && !vertical ? 2 : 1)
+    slotSize: Style.bar.iconSlot * (root.showPercentage && !vertical ? (root.powerWatts !== "" ? 3 : 2) : 1)
     tooltipText: ""
     onPressed: function(b) {
       if (!root.batteryPresent) return

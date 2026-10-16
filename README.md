@@ -16,8 +16,8 @@ My config is split into three repos so nothing is duplicated:
 | Repo | Used on | What it holds |
 |---|---|---|
 | [omarchy-shared-config](https://github.com/roehrbacher/omarchy-shared-config) | both | theme, top bar layout, my plugins, keybindings, menu, night light, auto timezone, audio passthrough, Insomnia (stay awake) |
-| [omarchy-pc-config](https://github.com/roehrbacher/omarchy-pc-config) | gaming PC | monitor, mouse pointer speed, headphones/speakers switching, Razer mic passthrough devices, game and streaming tweaks |
-| [omarchy-xps-config](https://github.com/roehrbacher/omarchy-xps-config) | laptop | touchpad, battery and charge limit, speaker tuning, laptop audio devices, local AI model |
+| [omarchy-pc-config](https://github.com/roehrbacher/omarchy-pc-config) | gaming PC | monitor, mouse pointer speed, headphones/speakers switching, passthrough headphones, game and streaming tweaks |
+| [omarchy-xps-config](https://github.com/roehrbacher/omarchy-xps-config) | laptop | touchpad, battery and charge limit, speaker tuning, passthrough headphones, local AI model |
 
 ```
 omarchy-shared-config   (install first)
@@ -34,8 +34,8 @@ whatever it replaces, `./install.sh --dry-run` shows what would change, and
 - **Power and battery:** 80 % charge limit with a bar switch, last-chance
   suspend at 5 %
 - **Touchpad:** speed, natural scrolling, three-finger gestures
-- **Audio:** speaker calibrator plugin, mic passthrough devices (built-in mic
-  into USB-C headphones)
+- **Audio:** speaker calibrator plugin, passthrough headphones (USB-C;
+  the mic is the system default)
 - **Dictation:** Voxtype on the CPU (Parakeet), held on the Copilot key
 - **Apps:** Moonlight streaming window rules, local AI model for the bar toggle
 - **Fonts:** bar and terminal sizes for the laptop screen

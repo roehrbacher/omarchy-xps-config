@@ -121,12 +121,11 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `omarchy/shell.toml` – bar font size 11
 - `systemd/user/voxtype.service.d/gpu.conf` – runs the Vulkan build of Voxtype on the Arc B390
   (logs each dictation; replaced the old Parakeet `onnx-avx2.conf`, removed by install)
-- `voxtype/config.toml` – Voxtype settings for the XPS, same as the PC: Whisper
-  large-v3-turbo q5_0 (`@HOME@` filled in by install), English + German, the
-  vocabulary hint (Grok, Grok Build, Omarchy, Hyprland, Voxtype, Timon Röhrbacher, …),
-  Whisper VAD, plus replacements for words dictation keeps getting wrong.
-  About 1.8 s per 6–7 s dictation on battery/power-saver (Parakeet was ~0.7 s but
-  ignored the hint). Switch back: `engine = "parakeet"` and `voxtype-onnx-avx2` in gpu.conf
+- Voxtype settings (`voxtype/config.toml`) come from omarchy-shared-config (same on
+  both machines). Only the drop-in above is XPS-specific (Vulkan build on the Arc,
+  `--flash-attention`). About 1.8 s per 6–7 s dictation on battery/power-saver
+  (Parakeet was ~0.7 s but ignored the vocabulary hint). Switch back to Parakeet:
+  `voxtype-onnx-avx2 --engine parakeet daemon` in gpu.conf
 - `alacritty`, `ghostty`, `kitty` configs – terminal font size 8
 
 `install.sh` also removes the old misnamed `voxtype.service.d/vulkan.conf`

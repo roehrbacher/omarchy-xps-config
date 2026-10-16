@@ -8,14 +8,14 @@ import "BatteryModel.js" as BatteryModel
 
 // timon.battery: low-battery steps on top of Omarchy's stock 10 % warning.
 //   15 %  a gentle notification (once per discharge)
-//    5 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
+//    4 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
 //         skips the wait), then omarchy-battery-hibernate: lock, end Insomnia,
 //         hibernate (suspend if that fails). Plugging in cancels it.
-// 5 % of 68.6 Wh is ~3.4 Wh. The 60 s countdown (~7-15 W, <=0.25 Wh) plus the
-// hibernate itself (image capped at 13.2 GB, compressed to ~5-7 GB, written to
-// the encrypted NVMe in well under a minute at ~20 W, ~0.3 Wh) need ~0.5 Wh,
-// so 5 % leaves ~6x margin; even at 40 W load 3.4 Wh last ~5 min, and the
-// battery is new (full = design capacity), so the gauge is still accurate.
+// 4 % of 68.6 Wh is ~2.7 Wh. The 60 s countdown (<=0.25 Wh) plus the hibernate
+// itself (~0.3 Wh) need ~0.5 Wh, so 4 % leaves ~5x margin for gauge error near
+// empty. This is tuned for a NEW battery (full = design capacity). With an older,
+// worn battery the gauge gets less accurate near empty: raise
+// countdownTriggerPercent to 6-8 %.
 // Preview (never hibernates): omarchy-shell timon.battery preview  (stop: cancelPreview)
 // The low-battery warning and the AC/battery power profile switch are left to
 // Omarchy's stock omarchy.battery service, which runs alongside this one.
@@ -25,7 +25,7 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property int countdownTriggerPercent: 5
+  readonly property int countdownTriggerPercent: 4
   readonly property int noticePercent: 15
   property bool noticeSent: false
   readonly property int countdownWindowSec: 60

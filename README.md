@@ -32,7 +32,7 @@ whatever it replaces, `./install.sh --dry-run` shows what would change, and
 ## What's in this repo
 
 - **Power and battery:** watts next to the battery % in the bar, 80 % charge limit with a bar switch, last-chance
-  hibernate at 5 % (notice at 15 %)
+  hibernate at 4 % (notice at 15 %)
 - **Touchpad:** speed, natural scrolling, three-finger gestures
 - **Audio:** speaker calibrator plugin, passthrough headphones (USB-C;
   the mic is the system default)
@@ -100,12 +100,15 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `omarchy/shell.d/50-xps.json` – adds the `timon.battery` service, swaps
   the bar's battery widget for `timon.xps-power`
 - `omarchy/plugins/timon.battery` – low-battery steps on battery: a gentle notice at
-  **15 %**, Omarchy's stock warning at 10 %, then at **5 %** a 60-second countdown you
+  **15 %**, Omarchy's stock warning at 10 %, then at **4 %** a 60-second countdown you
   can't click away ("Hibernating to save your work. Plug in to cancel.", with a
   *Hibernate now* button) in a flat Omarchy-style card in the theme's urgent colour.
   At 0 it runs `.local/bin/omarchy-battery-hibernate`: lock, end Insomnia, hibernate
   (suspend if hibernate fails); you resume at the lock screen. Plugging in cancels.
-  5 % is ~3.4 Wh; countdown + hibernate need ~0.5 Wh. Preview without hibernating:
+  4 % is ~2.7 Wh; countdown + hibernate need ~0.5 Wh.
+  **Old or worn battery?** 4 % is tuned for a new battery. Near empty, an aged
+  battery's percentage gets unreliable and it can cut out early, so raise
+  `countdownTriggerPercent` in `Service.qml` to 6-8 %. Preview without hibernating:
   `omarchy-shell timon.battery preview`. The AC/battery power-profile switch comes from
   Omarchy's stock `omarchy.battery` service
 - `omarchy/plugins/thefreshoffice.speaker-calibrator` 1.2.0 – installed, not on the bar.

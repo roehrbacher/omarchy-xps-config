@@ -1,0 +1,67 @@
+#!/bin/bash
+# Managed by omarchy-xps-config. 80 % charge limit for the XPS battery.
+#
+# Goes through UPower (EnableChargeThreshold), which polkit allows for the
+# logged-in user without a password. On this Dell, "on" makes UPower write
+# charge_types=Custom with start 75 % / end 80 %; "off" switches back to
+# Standard (charges to 100 %). The Dell firmware stores the mode, so it also
+# holds while the laptop is off, booting or running another OS.
+#   battery-charge-limit [status|on|off|toggle]
+set -euo pipefail
+
+dev=$(upower -e 2>/dev/null | grep -m1 '/battery_BAT') || { echo "No battery found" >&2; exit 1; }
+iface=org.freedesktop.UPower.Device
+
+prop() { busctl get-property org.freedesktop.UPower "$dev" "$iface" "$1" | awk '{print $2}'; }
+set_limit() { busctl call org.freedesktop.UPower "$dev" "$iface" EnableChargeThreshold b "$1" >/dev/null; }
+
+[[ $(prop ChargeThresholdSupported) == true ]] || { echo "This battery has no charge limit" >&2; exit 1; }
+
+sysfs=/sys/class/power_supply/${dev##*/battery_}
+
+on_ac() {
+  local supply
+  for supply in /sys/class/power_supply/*; do
+    [[ -r $supply/type && $(<"$supply/type") == Mains && -r $supply/online ]] || continue
+    [[ $(<"$supply/online") == 1 ]] && return 0
+  done
+  return 1
+}
+
+# Turning the limit off while plugged in and above the stop level should start
+# charging right away. The Dell EC normally does (seen: Not charging ->
+# Charging within 5 s), but it can stay idle until the charger is replugged.
+# If it does, switch Custom -> Standard again (the only modes UPower may set
+# without root), up to twice, until the battery reports Charging.
+limit_off() {
+  set_limit false
+  on_ac || return 0
+  (( $(<"$sysfs/capacity") < 99 )) || return 0
+  local attempt i
+  for attempt in 1 2 3; do
+    for i in 1 2 3 4 5 6; do
+      [[ $(<"$sysfs/status") == Charging ]] && return 0
+      sleep 0.5
+    done
+    (( attempt < 3 )) || break
+    set_limit true
+    sleep 1
+    set_limit false
+  done
+  echo "Charging did not resume by itself; replug the charger" >&2
+}
+
+case "${1:-status}" in
+  on) set_limit true ;;
+  off) limit_off ;;
+  toggle)
+    if [[ $(prop ChargeThresholdEnabled) == true ]]; then limit_off; else set_limit true; fi
+    ;;
+  status) ;;
+  *) echo "Usage: battery-charge-limit [status|on|off|toggle]" >&2; exit 2 ;;
+esac
+
+mode=$(sed -n 's/.*\[\([A-Za-z_]*\)\].*/\1/p' "$sysfs/charge_types" 2>/dev/null || true)
+printf 'enabled\t%s\nstart\t%s\nend\t%s\nmode\t%s\nstatus\t%s\n' \
+  "$(prop ChargeThresholdEnabled)" "$(prop ChargeStartThreshold)" "$(prop ChargeEndThreshold)" "${mode:-unknown}" \
+  "$(cat "$sysfs/status" 2>/dev/null || echo unknown)"

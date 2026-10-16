@@ -1,0 +1,21 @@
+{
+  "plugins": [
+    {
+      "id": "timon.battery"
+    }
+  ],
+  "barReplace": {
+    "omarchy.power": {
+      "id": "timon.xps-power",
+      "showPercentage": true
+    }
+  },
+  "barInsert": [
+    {
+      "after": "timon.local-ai",
+      "entry": {
+        "id": "timon.audio-passthrough"
+      }
+    }
+  ]
+}

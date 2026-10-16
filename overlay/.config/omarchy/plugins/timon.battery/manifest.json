@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "timon.battery",
+  "name": "My Battery",
+  "version": "2.0.0",
+  "author": "Timon Röhrbacher",
+  "description": "Last-chance suspend: locked 90 s countdown at 5 % on battery, then suspend. Low-battery warning stays with stock omarchy.battery.",
+  "kinds": [
+    "service"
+  ],
+  "entryPoints": {
+    "service": "Service.qml"
+  }
+}

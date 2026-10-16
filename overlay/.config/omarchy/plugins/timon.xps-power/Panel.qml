@@ -107,6 +107,12 @@ Panel {
     var device = UPower.displayDevice
     return !!(device && device.isPresent && UPower.onBattery)
   }
+  // timon: what the battery itself reports. Stock treats "plugged in" as
+  // charging, which is wrong with a weak charger (plugged in but draining).
+  readonly property bool batteryDraining: {
+    var device = UPower.displayDevice
+    return !!(device && device.isPresent && device.state === UPowerDeviceState.Discharging)
+  }
   readonly property bool chargeThresholdActive: {
     var device = UPower.displayDevice
     return Model.chargeThresholdActive(device, root.discharging, upowerStates())
@@ -122,7 +128,7 @@ Panel {
 
   readonly property bool charging: {
     var d = UPower.displayDevice
-    return d && d.isPresent && !UPower.onBattery && !root.batteryFlowIdle
+    return d && d.isPresent && !root.batteryDraining && !UPower.onBattery && !root.batteryFlowIdle
   }
 
   readonly property color batteryFillColor: {
@@ -529,11 +535,11 @@ Panel {
             width: (parent.width - parent.spacing) / 2
             spacing: Style.spacing.labelGap
             InfoPair {
-              label: root.chargeThresholdActive ? "Charge limit" : (root.discharging ? "Time left" : "Time to full")
+              label: root.chargeThresholdActive ? "Charge limit" : (root.batteryDraining ? "Time left" : "Time to full")
               value: root.chargeThresholdActive ? (root.batteryInfo.threshold || "-") : (root.batteryFlowIdle ? "-" : (root.batteryInfo.time || "—"))
             }
             InfoPair {
-              label: root.chargeThresholdActive ? "Battery state" : (root.discharging ? "Discharging" : "Charging")
+              label: root.chargeThresholdActive ? "Battery state" : (root.batteryDraining ? "Discharging" : "Charging")
               value: root.chargeThresholdActive ? "Holding" : (root.batteryFull ? "-" : (root.batteryInfo.rate || ""))
             }
           }

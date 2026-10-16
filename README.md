@@ -100,7 +100,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `omarchy/shell.d/50-xps.json` – adds the `timon.battery` service, swaps
   the bar's battery widget for `timon.xps-power`
 - `omarchy/plugins/timon.battery` – only the last-chance suspend: at **5 %** on
-  battery a 90-second countdown you can't click away, then suspend (plugging in
+  battery a 60-second countdown you can't click away (flat Omarchy-style card in
+  the theme's urgent colour; `omarchy-shell timon.battery preview` shows it without
+  suspending), then suspend (plugging in
   cancels it). The low-battery warning (10 %) and the AC/battery power-profile
   switch come from Omarchy's stock `omarchy.battery` service, which is enabled
   again

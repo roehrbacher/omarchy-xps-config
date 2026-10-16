@@ -7,8 +7,9 @@ import qs.Commons
 import "BatteryModel.js" as BatteryModel
 
 // timon.battery: only the last-chance suspend countdown. At 5 % on battery a
-// locked 90-second countdown appears (it can't be clicked away) and then the
+// locked 60-second countdown appears (it can't be clicked away) and then the
 // laptop suspends, so it never just dies. Plugging in cancels it.
+// Preview (never suspends): omarchy-shell timon.battery preview  (stop: cancelPreview)
 // The low-battery warning and the AC/battery power profile switch are left to
 // Omarchy's stock omarchy.battery service, which runs alongside this one.
 Item {
@@ -18,9 +19,10 @@ Item {
   property var manifest: null
 
   readonly property int countdownTriggerPercent: 5
-  readonly property int countdownWindowSec: 90
+  readonly property int countdownWindowSec: 60
   property bool countdownActive: false
-  property int secondsLeft: 90
+  property bool previewMode: false
+  property int secondsLeft: 60
   property double countdownDeadlineMs: 0
   property int batteryLevel: -1
 
@@ -34,6 +36,7 @@ Item {
 
   function checkBattery() {
     batteryLevel = batteryPercentage()
+    if (previewMode) return
     if (!isDischarging()) {
       stopCountdown()
       return
@@ -57,7 +60,7 @@ Item {
       countdownTimer.running = false
       return
     }
-    if (!isDischarging()) {
+    if (!previewMode && !isDischarging()) {
       stopCountdown()
       return
     }
@@ -65,14 +68,29 @@ Item {
     var left = Math.ceil((countdownDeadlineMs - Date.now()) / 1000)
     if (left < 0) left = 0
     secondsLeft = left
-    if (left <= 0) suspendNow()
+    if (left <= 0) {
+      if (previewMode) stopCountdown()
+      else suspendNow()
+    }
   }
 
   function stopCountdown() {
     countdownTimer.running = false
     countdownActive = false
+    previewMode = false
     secondsLeft = countdownWindowSec
     countdownDeadlineMs = 0
+  }
+
+  // Shows the real popup and countdown, but ends by hiding instead of suspending.
+  IpcHandler {
+    target: "timon.battery"
+    function preview(): void {
+      if (root.countdownActive && !root.previewMode) return
+      root.previewMode = true
+      root.startCountdown()
+    }
+    function cancelPreview(): void { if (root.previewMode) root.stopCountdown() }
   }
 
   function suspendNow() {
@@ -123,17 +141,22 @@ Item {
     exclusionMode: ExclusionMode.Ignore
     mask: Region { item: card }
 
+    // Omarchy style: flat card on the theme background, thin border and the
+    // countdown in the theme's urgent colour, monospace UI font, theme radius.
+    readonly property color urgent: Color.urgent
+    readonly property color text: Color.popups.text
+
     Rectangle {
       id: card
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: parent.top
-      anchors.topMargin: 72
-      width: 420
-      height: 160
-      radius: 12
-      color: Qt.rgba(0.08, 0.08, 0.08, 0.96)
-      border.width: 3
-      border.color: "#e24e4e"
+      anchors.topMargin: Style.space(72)
+      width: Style.space(340)
+      height: content.implicitHeight + Style.space(20) * 2
+      radius: Style.cornerRadius
+      color: Util.alpha(Color.background, 0.97)
+      border.width: Math.max(1, Style.space(2))
+      border.color: panel.urgent
 
       MouseArea {
         anchors.fill: parent
@@ -141,27 +164,50 @@ Item {
       }
 
       Column {
+        id: content
         anchors.centerIn: parent
-        spacing: 10
-        width: parent.width - 40
+        width: parent.width - Style.space(20) * 2
+        spacing: Style.space(10)
 
-        Text {
+        Row {
           width: parent.width
-          text: "Sleep in " + BatteryModel.formatCountdown(root.secondsLeft)
-          font.pixelSize: 36
-          font.bold: true
-          color: "#e24e4e"
-          horizontalAlignment: Text.AlignHCenter
+          Text {
+            width: parent.width / 2
+            text: "Battery " + (root.batteryLevel >= 0 ? root.batteryLevel + "%" : "low")
+            font.family: Style.font.family
+            font.pixelSize: Style.font.title
+            font.bold: true
+            color: panel.urgent
+          }
+          Text {
+            width: parent.width / 2
+            text: BatteryModel.formatCountdown(root.secondsLeft)
+            horizontalAlignment: Text.AlignRight
+            font.family: Style.font.family
+            font.pixelSize: Style.font.displayLarge
+            font.bold: true
+            color: panel.urgent
+          }
+        }
+
+        // Time left, shrinking towards the left.
+        Rectangle {
+          width: parent.width
+          height: Math.max(Style.space(4), 2)
+          color: Util.alpha(panel.text, 0.15)
+          Rectangle {
+            width: parent.width * Math.max(0, Math.min(1, root.secondsLeft / root.countdownWindowSec))
+            height: parent.height
+            color: panel.urgent
+          }
         }
 
         Text {
           width: parent.width
-          text: root.batteryLevel >= 0
-            ? "Plug in now. Machine will suspend. (" + String(root.batteryLevel) + "%)"
-            : "Plug in now. Machine will suspend."
-          font.pixelSize: 16
-          color: "#eeeeee"
-          horizontalAlignment: Text.AlignHCenter
+          text: root.previewMode ? "Preview, it will not sleep" : "Plug in, or it sleeps"
+          font.family: Style.font.family
+          font.pixelSize: Style.font.body
+          color: Util.alpha(panel.text, 0.75)
           wrapMode: Text.WordWrap
         }
       }

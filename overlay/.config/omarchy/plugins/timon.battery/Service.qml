@@ -6,10 +6,17 @@ import Quickshell.Wayland
 import qs.Commons
 import "BatteryModel.js" as BatteryModel
 
-// timon.battery: only the last-chance suspend countdown. At 5 % on battery a
-// locked 60-second countdown appears (it can't be clicked away) and then the
-// laptop suspends, so it never just dies. Plugging in cancels it.
-// Preview (never suspends): omarchy-shell timon.battery preview  (stop: cancelPreview)
+// timon.battery: low-battery steps on top of Omarchy's stock 10 % warning.
+//   15 %  a gentle notification (once per discharge)
+//    5 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
+//         skips the wait), then omarchy-battery-hibernate: lock, end Insomnia,
+//         hibernate (suspend if that fails). Plugging in cancels it.
+// 5 % of 68.6 Wh is ~3.4 Wh. The 60 s countdown (~7-15 W, <=0.25 Wh) plus the
+// hibernate itself (image capped at 13.2 GB, compressed to ~5-7 GB, written to
+// the encrypted NVMe in well under a minute at ~20 W, ~0.3 Wh) need ~0.5 Wh,
+// so 5 % leaves ~6x margin; even at 40 W load 3.4 Wh last ~5 min, and the
+// battery is new (full = design capacity), so the gauge is still accurate.
+// Preview (never hibernates): omarchy-shell timon.battery preview  (stop: cancelPreview)
 // The low-battery warning and the AC/battery power profile switch are left to
 // Omarchy's stock omarchy.battery service, which runs alongside this one.
 Item {
@@ -19,6 +26,8 @@ Item {
   property var manifest: null
 
   readonly property int countdownTriggerPercent: 5
+  readonly property int noticePercent: 15
+  property bool noticeSent: false
   readonly property int countdownWindowSec: 60
   property bool countdownActive: false
   property bool previewMode: false
@@ -38,8 +47,13 @@ Item {
     batteryLevel = batteryPercentage()
     if (previewMode) return
     if (!isDischarging()) {
+      noticeSent = false
       stopCountdown()
       return
+    }
+    if (!noticeSent && batteryLevel >= 0 && batteryLevel <= noticePercent && batteryLevel > countdownTriggerPercent) {
+      noticeSent = true
+      noticeProcess.running = true
     }
 
     if (!BatteryModel.shouldStartCountdown(batteryLevel, countdownActive, countdownTriggerPercent))
@@ -70,7 +84,7 @@ Item {
     secondsLeft = left
     if (left <= 0) {
       if (previewMode) stopCountdown()
-      else suspendNow()
+      else hibernateNow()
     }
   }
 
@@ -82,7 +96,7 @@ Item {
     countdownDeadlineMs = 0
   }
 
-  // Shows the real popup and countdown, but ends by hiding instead of suspending.
+  // Shows the real popup and countdown, but ends by hiding instead of hibernating.
   IpcHandler {
     target: "timon.battery"
     function preview(): void {
@@ -93,15 +107,24 @@ Item {
     function cancelPreview(): void { if (root.previewMode) root.stopCountdown() }
   }
 
-  function suspendNow() {
-    if (suspendProcess.running) return
+  function hibernateNow() {
+    if (root.previewMode) { stopCountdown(); return }
+    if (hibernateProcess.running) return
     countdownTimer.running = false
     countdownActive = false
-    suspendProcess.command = ["systemctl", "suspend"]
-    suspendProcess.running = true
+    hibernateProcess.running = true
   }
 
-  Process { id: suspendProcess }
+  Process {
+    id: hibernateProcess
+    command: ["omarchy-battery-hibernate"]
+  }
+
+  Process {
+    id: noticeProcess
+    command: ["omarchy-notification-send", "Battery " + root.noticePercent + "%",
+      "Time to find a charger. At " + root.countdownTriggerPercent + "% the laptop hibernates to save your work."]
+  }
 
   Timer {
     interval: 15000
@@ -135,7 +158,7 @@ Item {
     visible: root.countdownActive
     anchors { top: true; bottom: true; left: true; right: true }
     color: "transparent"
-    WlrLayershell.namespace: "omarchy-battery-suspend"
+    WlrLayershell.namespace: "omarchy-battery-hibernate"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     exclusionMode: ExclusionMode.Ignore
@@ -204,11 +227,37 @@ Item {
 
         Text {
           width: parent.width
-          text: root.previewMode ? "Preview, it will not sleep" : "Plug in, or it sleeps"
+          text: root.previewMode ? "Preview: it will not hibernate"
+            : "Hibernating to save your work. Plug in to cancel."
           font.family: Style.font.family
           font.pixelSize: Style.font.body
           color: Util.alpha(panel.text, 0.75)
           wrapMode: Text.WordWrap
+        }
+
+        Rectangle {
+          id: nowButton
+          width: nowLabel.implicitWidth + Style.space(12) * 2
+          height: nowLabel.implicitHeight + Style.space(6) * 2
+          radius: Style.cornerRadius
+          color: nowMouse.containsMouse ? Util.alpha(panel.urgent, 0.15) : "transparent"
+          border.width: 1
+          border.color: Util.alpha(panel.urgent, 0.6)
+          Text {
+            id: nowLabel
+            anchors.centerIn: parent
+            text: "Hibernate now"
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
+            color: panel.urgent
+          }
+          MouseArea {
+            id: nowMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.hibernateNow()
+          }
         }
       }
     }

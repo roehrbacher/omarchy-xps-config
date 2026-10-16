@@ -64,7 +64,7 @@ language = "auto"
 translate = false
 # Vocabulary hint for Whisper. Only used if engine is switched back to
 # "whisper"; Parakeet (the active engine) has no prompt support.
-initial_prompt = "Omarchy, OmaCalc, Hyprland, Grok Bot, Voxtype, Timon Röhrbacher, Wardogs, Proton, Obsidian, Tailscale, Sunshine, Moonlight, GitHub."
+initial_prompt = "Omarchy, OmaCalc, Hyprland, Grok, Grok Bot, Grok Build, Voxtype, Timon Röhrbacher, Wardogs, Proton, Obsidian, Tailscale, Sunshine, Moonlight, GitHub."
 flash_attention = true
 
 # Number of CPU threads for inference (omit for auto-detection)
@@ -146,6 +146,10 @@ filter_filler_words = true
 "tmon" = "Timon"
 "war dogs" = "Wardogs"
 "ibecoded" = "vibe coded"
+"grock" = "Grok"
+"grog build" = "Grok Build"
+"hyperland" = "Hyprland"
+"hyper land" = "Hyprland"
 
 [osd]
 enabled = false

@@ -410,9 +410,26 @@ class LevelSearchTests(unittest.TestCase):
         probe = analyse_level_probe(self.probe_capture(0.3, background=0.05), self.rate)
         self.assertAlmostEqual(probe["background_rms_dbfs"], -26.0, delta=1.0)
 
+    def test_probe_ignores_a_digital_microphone_startup_burst(self):
+        capture = self.probe_capture(0.3, background=0.001)
+        # Some digital microphone nodes emit invalid full-scale samples while
+        # they start.  They settle before the deliberately long probe lead.
+        startup = int(0.15 * self.rate)
+        capture[:startup, 0] = np.tile((-1.0, 1.0), startup // 2)
+        probe = analyse_level_probe(capture, self.rate)
+        self.assertLess(probe["background_rms_dbfs"], -50.0)
+        self.assertAlmostEqual(probe["peak_dbfs"], 20 * np.log10(0.3), delta=0.2)
+
     def test_silence_has_no_prominence(self):
         probe = analyse_level_probe(self.probe_capture(0.0), self.rate)
         self.assertLess(probe["prominence_db"], 3.0)
+
+    def test_digital_silence_is_reported_without_numeric_warnings(self):
+        with np.errstate(divide="raise", invalid="raise"):
+            probe = analyse_level_probe(np.zeros((self.rate, 3)), self.rate)
+        self.assertEqual(probe["prominence_db"], 0.0)
+        self.assertEqual(probe["clipped_samples"], 0)
+        self.assertEqual(probe["tonal_blocks"], 0)
 
     def test_plan_raises_a_quiet_probe_proportionally(self):
         probe = {"peak_dbfs": -32.0, "noise_dbfs": -80.0, "prominence_db": 40.0, "clipped_samples": 0}

@@ -104,7 +104,10 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   cancels it). The low-battery warning (10 %) and the AC/battery power-profile
   switch come from Omarchy's stock `omarchy.battery` service, which is enabled
   again
-- `omarchy/plugins/thefreshoffice.speaker-calibrator` – installed, not on the bar.
+- `omarchy/plugins/thefreshoffice.speaker-calibrator` 1.2.0 – installed, not on the bar.
+  Reviewed copy of github.com/thefreshoffice/omarchy-speaker-calibrator at `b142b02`
+  (commit in `.upstream-commit`, listed in `plugins.lock`). The optional shared-calibration
+  registry (GitHub) is off until you allow it in the panel; Share only sends after a second press.
   The XPS speakers are calibrated (sink `omarchy_speaker_tuning`, the default
   output); the calibrator keeps its tuning in `~/.config/pipewire/` and its own
   data folders, which this repo does not track. The shared `timon.audio` panel
@@ -145,3 +148,10 @@ default agent is set by hand.
 ## License
 
 0BSD (see `LICENSE`), © 2026 Timon Röhrbacher. Third-party plugins and assets in `overlay/` (e.g. folders not named `timon.*`) keep their own licenses, see the `LICENSE` file inside each.
+
+## Plugin updates
+
+External plugins are pinned in `plugins.lock` (this repo, XPS-only) and in
+`omarchy-shared-config/plugins.lock` (both machines). The weekly plugin round checks
+every entry in both files against upstream, reviews the full diff, and updates the
+copy only when it is safe.

@@ -1,0 +1,6 @@
+# External plugins in overlay/.config/omarchy/plugins/, kept as reviewed copies
+# (no .git, so `omarchy plugin update` cannot move them). Update only after
+# reviewing the upstream diff from the commit below. Same format as
+# omarchy-shared-config/plugins.lock; the weekly plugin round checks both.
+# id                              upstream repo                                          reviewed commit                            reviewed    notes
+thefreshoffice.speaker-calibrator  https://github.com/thefreshoffice/omarchy-speaker-calibrator  b142b0208cc086adc53dbdad78a73207a3075854  2026-10-16  unmodified

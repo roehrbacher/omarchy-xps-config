@@ -305,7 +305,7 @@ Panel {
         var parts = text.trim().split(" ")
         var w = Math.abs(Number(parts[1]) / 1000000)
         var moving = parts[0] === "Charging" || parts[0] === "Discharging"
-        root.powerWatts = (moving && isFinite(w) && w >= 0.5) ? Math.round(w) + "W " : ""
+        root.powerWatts = (moving && isFinite(w) && w >= 0.5) ? (parts[0] === "Charging" ? "+" : "-") + Math.round(w) + "W " : ""
       }
     }
   }

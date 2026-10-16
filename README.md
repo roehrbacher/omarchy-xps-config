@@ -84,7 +84,7 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   until the battery reports Charging. `status` also prints the battery state.
 - `omarchy/plugins/timon.xps-power` – the stock battery bar widget
   (`omarchy.power`, Omarchy 4.0.4) plus the charge/discharge power on the bar
-  (`12W 44% 󰁹`, from `/sys/class/power_supply/BAT*`, every 5 s; hidden when full,
+  (`+12W 80%` charging, `-8W 42%` on battery, from `/sys/class/power_supply/BAT*`, every 5 s; hidden when full,
   idle, holding at the limit or under 0.5 W) and a **Limit charging to 80%** switch in
   its popup and a battery-with-heart icon on the bar while the limit is on.
   Replaces `omarchy.power` on the XPS bar (`barReplace` in `50-xps.json`).

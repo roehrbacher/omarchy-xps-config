@@ -36,7 +36,7 @@ whatever it replaces, `./install.sh --dry-run` shows what would change, and
 - **Touchpad:** speed, natural scrolling, three-finger gestures
 - **Audio:** speaker calibrator plugin, passthrough headphones (USB-C;
   the mic is the system default)
-- **Dictation:** Voxtype on the CPU (Parakeet), held on the Copilot key
+- **Dictation:** Voxtype on the Arc B390 (Vulkan, Whisper large-v3-turbo q5_0, like the PC), held on the Copilot key
 - **Apps:** Moonlight streaming window rules, local AI model for the bar toggle
 - **Fonts:** bar and terminal sizes for the laptop screen
 
@@ -117,10 +117,14 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   itself is set up by hand (model under `~/Models`), stays disabled, and is only
   started from the bar
 - `omarchy/shell.toml` – bar font size 11
-- `systemd/user/voxtype.service.d/onnx-avx2.conf` – runs the ONNX AVX2 build of Voxtype
-- `voxtype/config.toml` – Voxtype settings for the XPS: Parakeet on the CPU,
-  replacements for words dictation keeps getting wrong (Omarchy, Grok Bot,
-  Timon, …) and a short Whisper vocabulary hint in case the engine is switched back
+- `systemd/user/voxtype.service.d/gpu.conf` – runs the Vulkan build of Voxtype on the Arc B390
+  (logs each dictation; replaced the old Parakeet `onnx-avx2.conf`, removed by install)
+- `voxtype/config.toml` – Voxtype settings for the XPS, same as the PC: Whisper
+  large-v3-turbo q5_0 (`@HOME@` filled in by install), English + German, the
+  vocabulary hint (Grok, Grok Build, Omarchy, Hyprland, Voxtype, Timon Röhrbacher, …),
+  Whisper VAD, plus replacements for words dictation keeps getting wrong.
+  About 1.8 s per 6–7 s dictation on battery/power-saver (Parakeet was ~0.7 s but
+  ignored the hint). Switch back: `engine = "parakeet"` and `voxtype-onnx-avx2` in gpu.conf
 - `alacritty`, `ghostty`, `kitty` configs – terminal font size 8
 
 `install.sh` also removes the old misnamed `voxtype.service.d/vulkan.conf`

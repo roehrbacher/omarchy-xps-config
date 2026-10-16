@@ -9,7 +9,7 @@
 # ("idle", "recording", "transcribing") to this file whenever it changes.
 # Required for `voxtype record toggle` and `voxtype status` commands.
 state_file = "auto"
-engine = "parakeet"
+engine = "whisper"
 
 [hotkey]
 # Hotkey is configured in Hyprland. Default is Super + Ctrl + X
@@ -53,17 +53,17 @@ volume = 0.5
 # .en models are English-only but faster and more accurate for English
 # large-v3-turbo is faster than large-v3 with minimal accuracy loss (recommended for GPU)
 # Or provide absolute path to a custom .bin model file
-model = "large-v3-turbo"
+model = "@HOME@/.local/share/voxtype/models/ggml-large-v3-turbo-q5_0.bin"
 
 # Language for transcription
 # Use "en" for English, "auto" for auto-detection
 # See: https://github.com/openai/whisper#available-models-and-languages
-language = "auto"
+language = "en,de"
 
 # Translate non-English speech to English
 translate = false
-# Vocabulary hint for Whisper. Only used if engine is switched back to
-# "whisper"; Parakeet (the active engine) has no prompt support.
+# Vocabulary hint: Whisper leans toward these spellings. Keep it short,
+# a long prompt can leak into very short recordings.
 initial_prompt = "Omarchy, OmaCalc, Hyprland, Grok, Grok Bot, Grok Build, Voxtype, Timon Röhrbacher, Wardogs, Proton, Obsidian, Tailscale, Sunshine, Moonlight, GitHub."
 flash_attention = true
 
@@ -150,6 +150,7 @@ filter_filler_words = true
 "grog build" = "Grok Build"
 "hyperland" = "Hyprland"
 "hyper land" = "Hyprland"
+"amarkey" = "Omarchy"
 
 [osd]
 enabled = false

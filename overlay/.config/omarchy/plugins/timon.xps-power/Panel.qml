@@ -92,6 +92,7 @@ Panel {
 
   function modeLabel() {
     var device = UPower.displayDevice
+    if (root.batteryDraining) return root.discharging ? "On battery" : "Discharging"
     return Model.modeLabel(device, root.discharging, upowerStates())
   }
 
@@ -165,7 +166,7 @@ Panel {
   readonly property var activePhrases: {
     if (fullyCharged) return []
     if (charging) return chargingPhrases
-    if (discharging) return onBatteryPhrases
+    if (discharging || batteryDraining) return onBatteryPhrases
     return []
   }
   readonly property bool rotatingPhrases: activePhrases.length > 0

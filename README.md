@@ -61,8 +61,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `hypr/machine-bindings.lua` – hold the Copilot key to dictate with Voxtype
   (F9 and the stock Copilot-key menu are unbound); middle click / three-finger
   click plays or pauses; Super+Shift+Space left unbound
-- **Lid** – closing the lid suspends as stock (on AC too); to keep the laptop
-  running with the lid closed, start an Insomnia session. Everything about the lid
+- **Lid** – closing the lid suspends, on battery **and on AC**. This is
+  intended (stock logind, no `HandleLidSwitchExternalPower=ignore` drop-in); to
+  keep the laptop running with the lid closed, start an Insomnia session. Everything about the lid
   is generic and lives in omarchy-shared-config, which detects that this is a
   laptop (battery + lid): the lid binds and `omarchy-lid`, Insomnia in laptop
   mode (lid on battery keeps running during a session, no lock on start,

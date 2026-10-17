@@ -15,6 +15,6 @@ o.bind("mouse:274", "Play/Pause", "omarchy-shell media playPause", { locked = tr
 -- Super+Shift+Space stays free (stock: toggle the top bar).
 hl.unbind("SUPER + SHIFT + SPACE")
 
--- Lid: bound in the shared repo (omarchy-lid, generic laptop handling). That
--- the laptop keeps running closed on AC comes from this repo's root-files/
--- logind drop-in (HandleLidSwitchExternalPower=ignore).
+-- Lid: bound in the shared repo (omarchy-lid, generic laptop handling).
+-- Closing the lid suspends, on battery and on AC (intended, stock logind
+-- behaviour); an Insomnia session keeps it running closed.

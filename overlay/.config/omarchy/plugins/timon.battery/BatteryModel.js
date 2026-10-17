@@ -13,6 +13,15 @@ function shouldStartCountdown(level, active, triggerPercent) {
   return level >= 0 && level <= trigger
 }
 
+// Full-charge notice, once per plugged-in session. Returns {fire, sent}.
+// Unplugging re-arms it; so does dropping below rearmPercent while plugged in.
+function fullChargeStep(level, pluggedIn, sent, threshold, rearmPercent) {
+  if (!pluggedIn) return { fire: false, sent: false }
+  if (sent && level >= 0 && level < rearmPercent) sent = false
+  if (!sent && level >= 0 && level >= threshold) return { fire: true, sent: true }
+  return { fire: false, sent: sent }
+}
+
 function formatCountdown(sec) {
   var n = Math.max(0, Math.round(Number(sec) || 0))
   var m = Math.floor(n / 60)
@@ -25,6 +34,7 @@ if (typeof module !== "undefined") {
     batteryPercentage: batteryPercentage,
     isDischarging: isDischarging,
     shouldStartCountdown: shouldStartCountdown,
+    fullChargeStep: fullChargeStep,
     formatCountdown: formatCountdown
   }
 }

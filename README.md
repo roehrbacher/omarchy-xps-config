@@ -111,7 +111,11 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   battery's percentage gets unreliable and it can cut out early, so raise
   `countdownTriggerPercent` in `Service.qml` to 6-8 %. Preview without hibernating:
   `omarchy-shell timon.battery preview`. The AC/battery power-profile switch comes from
-  Omarchy's stock `omarchy.battery` service
+  Omarchy's stock `omarchy.battery` service.
+  While charging it sends one **"Fully charged – you can unplug the charger"** notification
+  at **80 %** (`fullChargeNoticePercent` in `Service.qml`, matching the 80 % charge limit).
+  It fires once per plugged-in session; unplugging, or dropping below 75 %
+  (`fullChargeRearmPercent`), re-arms it. Test: `omarchy-shell timon.battery testFullChargeNotice`
 - `omarchy/plugins/thefreshoffice.speaker-calibrator` 1.2.0 – installed, not on the bar.
   Reviewed copy of github.com/thefreshoffice/omarchy-speaker-calibrator at `b142b02`
   (commit in `.upstream-commit`, listed in `plugins.lock`). The optional shared-calibration

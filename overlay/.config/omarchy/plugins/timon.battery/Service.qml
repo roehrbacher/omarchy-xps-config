@@ -16,6 +16,10 @@ import "BatteryModel.js" as BatteryModel
 // empty. This is tuned for a NEW battery (full = design capacity). With an older,
 // worn battery the gauge gets less accurate near empty: raise
 // countdownTriggerPercent to 6-8 %.
+// Charging: at fullChargeNoticePercent (80 %, the charge limit) on AC, one
+// "Fully charged" notification per plugged-in session. Unplugging, or dropping
+// below fullChargeRearmPercent while plugged in, re-arms it.
+// Test it: omarchy-shell timon.battery testFullChargeNotice
 // Preview (never hibernates): omarchy-shell timon.battery preview  (stop: cancelPreview)
 // The low-battery warning and the AC/battery power profile switch are left to
 // Omarchy's stock omarchy.battery service, which runs alongside this one.
@@ -28,6 +32,10 @@ Item {
   readonly property int countdownTriggerPercent: 4
   readonly property int noticePercent: 15
   property bool noticeSent: false
+  readonly property int fullChargeNoticePercent: 80
+  readonly property int fullChargeRearmPercent: 75
+  property bool fullChargeNoticeSent: false
+  property bool fullChargeNoticeTest: false
   readonly property int countdownWindowSec: 60
   property bool countdownActive: false
   property bool previewMode: false
@@ -43,8 +51,24 @@ Item {
     return BatteryModel.isDischarging(UPower.displayDevice, UPower.onBattery, UPowerDeviceState.Discharging)
   }
 
+  function isPluggedIn() {
+    var d = UPower.displayDevice
+    return !!(d && d.isPresent && !UPower.onBattery)
+  }
+
+  function sendFullChargeNotice(isTest) {
+    fullChargeNoticeTest = isTest
+    console.log("timon.battery: full-charge notice" + (isTest ? " (test)" : "") + " at " + batteryLevel + "%")
+    fullChargeProcess.running = false
+    fullChargeProcess.running = true
+  }
+
   function checkBattery() {
     batteryLevel = batteryPercentage()
+    var full = BatteryModel.fullChargeStep(batteryLevel, isPluggedIn(), fullChargeNoticeSent,
+      fullChargeNoticePercent, fullChargeRearmPercent)
+    fullChargeNoticeSent = full.sent
+    if (full.fire) sendFullChargeNotice(false)
     if (previewMode) return
     if (!isDischarging()) {
       noticeSent = false
@@ -105,6 +129,8 @@ Item {
       root.startCountdown()
     }
     function cancelPreview(): void { if (root.previewMode) root.stopCountdown() }
+    // Sends the full-charge notification through the real path, labelled as a test.
+    function testFullChargeNotice(): void { root.sendFullChargeNotice(true) }
   }
 
   function hibernateNow() {
@@ -124,6 +150,13 @@ Item {
     id: noticeProcess
     command: ["omarchy-notification-send", "Battery " + root.noticePercent + "%",
       "Time to find a charger. At " + root.countdownTriggerPercent + "% the laptop hibernates to save your work."]
+  }
+
+  Process {
+    id: fullChargeProcess
+    command: ["omarchy-notification-send",
+      (root.fullChargeNoticeTest ? "Test: " : "") + "Fully charged",
+      "You can unplug the charger."]
   }
 
   Timer {

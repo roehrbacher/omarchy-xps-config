@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Fast volume steps for the 4-finger swipe (media-gestures.lua).
-# The stock omarchy-audio-output-volume re-resolves the sink, reads, writes and
-# shows the OSD on every step (~170 ms), and overlapping calls race each other,
-# so a swipe felt laggy. Here the sink's node id is resolved once per swipe
-# (begin), steps that arrive while one is being applied are summed and applied
-# as one clamped `wpctl set-volume` (~25 ms), so nothing queues up behind the
-# fingers, and the stock OSD is refreshed at most every 80 ms.
-#   gesture-volume begin | +N | -N | end
+# Fast volume for the 4-finger swipe (media-gestures.lua).
+# The stock omarchy-audio-output-volume resolves the sink, reads, writes and
+# shows the OSD on every step (~170 ms), so a swipe lagged behind the fingers.
+# Here the sink's node id is resolved once per swipe (begin); deltas (in %,
+# fractional, signed) that arrive while one is being applied are summed and
+# applied as one clamped `wpctl set-volume` (~15 ms); the stock OSD runs fully
+# in the background, at most every 100 ms, never in the hot path.
+#   gesture-volume begin | <+-N.N> | end
 set -uo pipefail
 RT="${XDG_RUNTIME_DIR:-/tmp}"
 IDF="$RT/gesture-volume.id"; LOCK="$RT/gesture-volume.lock"; OSDF="$RT/gesture-volume.osd"
@@ -16,29 +16,26 @@ resolve() {
   local name; name=$(omarchy-audio-output-sink) || return 1
   pactl -f json list sinks 2>/dev/null | jq -r --arg n "$name" '.[] | select(.name == $n) | .properties["object.id"]' >"$IDF"
 }
-percent() { wpctl get-volume "$1" | awk '{printf "%d", $2 * 100 + 0.5}'; }
+osd_now() {
+  setsid -f bash -c 'p=$(wpctl get-volume "$1" | awk "{printf \"%d\", \$2*100+0.5}"); omarchy-osd -i "$( [ "$p" = 0 ] && echo volume-muted || echo volume-high)" -p "$p"' _ "$1" >/dev/null 2>&1
+}
 osd() {  # $1 = id, $2 = force
-  local now last=0 p; now=$(date +%s%3N); [[ -r $OSDF ]] && read -r last <"$OSDF"
-  if [[ ${2:-} == force ]] || (( now - last >= 80 )); then
-    echo "$now" >"$OSDF"; p=$(percent "$1")
-    setsid -f omarchy-osd -i "$( (( p == 0 )) && echo volume-muted || echo volume-high)" -p "$p" >/dev/null 2>&1
-  fi
+  local now last=0; now=$(date +%s%3N); [[ -r $OSDF ]] && read -r last <"$OSDF"
+  if [[ ${2:-} == force ]] || (( now - last >= 100 )); then echo "$now" >"$OSDF"; osd_now "$1"; fi
 }
 
 case "${1:-}" in
-  begin) resolve && wpctl set-mute "$(cat "$IDF")" 0 ;;
-  end) sleep 0.05; "$0" +0; [[ -s $IDF ]] && osd "$(cat "$IDF")" force; rm -f "$IDF" "$PEND" ;;
+  begin) resolve && wpctl set-mute "$(<"$IDF")" 0 ;;
+  end) sleep 0.03; "$0" +0; [[ -s $IDF ]] && osd "$(<"$IDF")" force; rm -f "$IDF" "$PEND" ;;
   [+-][0-9]*)
-    # Queue this delta, then let whoever holds the apply lock drain the queue.
     ( flock 8; echo "$1" >>"$PEND" ) 8>"$PLOCK"
     exec 9>"$LOCK"; flock -n 9 || exit 0
     [[ -s $IDF ]] || resolve || exit 1
     id=$(<"$IDF")
     while :; do
-      sum=$( ( flock 8; [[ -s $PEND ]] && { awk '{s+=$1} END{print s+0}' "$PEND"; : >"$PEND"; } || echo 0 ) 8>"$PLOCK")
-      (( sum == 0 )) && break
-      if (( sum > 0 )); then wpctl set-volume -l 1.0 "$id" "${sum}%+"; else wpctl set-volume "$id" "$(( -sum ))%-"; fi
+      sum=$( ( flock 8; if [[ -s $PEND ]]; then awk '{s+=$1} END{printf "%.2f", s}' "$PEND"; : >"$PEND"; else echo 0; fi ) 8>"$PLOCK")
+      case $sum in 0|0.00|-0.00) break ;; -*) wpctl set-volume "$id" "${sum#-}%-" ;; *) wpctl set-volume -l 1.0 "$id" "${sum}%+" ;; esac
       osd "$id"
     done ;;
-  *) sed -n '2,8p' "$0"; exit 1 ;;
+  *) sed -n '2,9p' "$0"; exit 1 ;;
 esac

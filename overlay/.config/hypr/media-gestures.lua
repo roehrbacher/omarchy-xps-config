@@ -1,20 +1,31 @@
 -- Managed by omarchy-xps-config. Loaded from hypr/machine-input.lua.
 -- Four-finger touchpad swipes (three-finger swipes stay workspace /
 -- show-desktop, see machine-input.lua and show-desktop.lua):
---   up / down    volume up / down live, 1 % per STEP px of finger travel,
---                with the stock volume OSD (throttled)
+--   up / down    volume follows the fingers live (1 % per STEP px), both
+--                ways within one swipe, with the stock volume OSD
 --   left         (right to left) next track
 --   right        (left to right) previous track
 -- Same commands as the stock media keys (default/hypr/bindings/media.lua).
 -- Undo: remove the require line in machine-input.lua.
 
-local STEP = 9     -- px of finger travel per 1 % volume (live, while moving)
-local TRACK = 80   -- px of horizontal travel needed to skip a track
+local STEP = 9      -- px of finger travel per 1 % volume
+local QUANTUM = 0.5 -- send changes in 0.5 % pieces (smooth, few processes)
+local TRACK = 80    -- px of horizontal travel needed to skip a track
 
+-- Hyprland locks a gesture's direction at its start (separate up / down
+-- binds), but event.delta is the signed raw vertical movement in px (down is
+-- positive) for every update. So both binds do the same thing: volume follows
+-- the signed finger movement, and reversing mid-swipe reverses the volume.
 -- gesture-volume (in ~/.local/bin) resolves the sink once per swipe and
--- applies each update as one fast relative step, so the volume follows the
--- fingers instead of lagging behind a queue of slow full volume commands.
-local function volume(direction, sign)
+-- coalesces updates into single wpctl writes.
+local function dy(event)
+  local d = event and event.delta
+  if type(d) == "number" then return d end
+  if type(d) == "table" or type(d) == "userdata" then return d.y or 0 end
+  return 0
+end
+
+local function volume(direction)
   local acc = 0
   hl.gesture({
     fingers = 4,
@@ -25,12 +36,12 @@ local function volume(direction, sign)
         hl.exec_cmd("gesture-volume begin")
       end,
       update = function(event)
-        if not event or not event.delta then return end
-        acc = acc + math.abs(event.delta.y or 0)
-        local steps = math.floor(acc / STEP)
-        if steps > 0 then
-          acc = acc - steps * STEP
-          hl.exec_cmd("gesture-volume " .. sign .. steps)
+        acc = acc - dy(event) / STEP   -- fingers up = louder
+        local q = math.floor(math.abs(acc) / QUANTUM) * QUANTUM
+        if q > 0 then
+          local send = acc > 0 and q or -q
+          acc = acc - send
+          hl.exec_cmd(string.format("gesture-volume %+.1f", send))
         end
       end,
       finish = function()
@@ -60,7 +71,7 @@ local function track(direction, cmd)
   })
 end
 
-volume("up", "+")
-volume("down", "-")
+volume("up")
+volume("down")
 track("left", "omarchy-shell media next")
 track("right", "omarchy-shell media previous")

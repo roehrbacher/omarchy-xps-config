@@ -15,7 +15,7 @@ write() {
   (( v < 0 )) && v=0; (( v > 100 )) && v=100
   mkdir -p "$(dirname "$CONF")"
   printf '# Dell XPS touchpad haptic intensity (0-100).\n# Presets: low=10, mid=50, high=100.\nINTENSITY=%s\n' "$v" >"$CONF"
-  command -v notify-send >/dev/null && notify-send -t 1500 -h string:x-canonical-private-synchronous:haptic "Touchpad haptics" "Intensity $v" -h int:value:"$v" || true
+  [[ -z ${HAPTIC_QUIET:-} ]] && command -v notify-send >/dev/null && notify-send -t 1500 -h string:x-canonical-private-synchronous:haptic "Touchpad haptics" "Intensity $v" -h int:value:"$v" || true
   echo "$v"
 }
 

@@ -233,6 +233,7 @@ Panel {
 
   onOpenedChanged: {
     if (opened) {
+      hapticGetProc.running = true
       if (!batteryPresent) {
         close()
         return
@@ -267,6 +268,25 @@ Panel {
     id: systemProc
     command: ["omarchy-system-stats"]
     stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.updateKeyValue(text, "system") }
+  }
+
+  // ---------- Touchpad haptics (dell-haptic.conf via haptic-intensity) ----------
+  property int hapticIntensity: -1
+
+  Process {
+    id: hapticGetProc
+    command: ["haptic-intensity"]
+    stdout: StdioCollector { waitForEnd: true; onStreamFinished: { const v = parseInt(text); if (!isNaN(v)) root.hapticIntensity = v } }
+  }
+
+  Process { id: hapticSetProc; environment: ({ HAPTIC_QUIET: "1" }) }
+
+  function setHaptic(v) {
+    v = Math.round(v)
+    root.hapticIntensity = v
+    hapticSetProc.running = false
+    hapticSetProc.command = ["haptic-intensity", String(v)]
+    hapticSetProc.running = true
   }
 
   Process {
@@ -558,6 +578,46 @@ Panel {
           foreground: root.bar.foreground
           fontFamily: root.bar.fontFamily
           onClicked: if (!root.chargeLimitBusy) root.setChargeLimit(!root.chargeLimitEnabled)
+        }
+
+        // ---------- Touchpad haptics ----------
+        PanelSeparator {
+          foreground: root.bar.foreground
+          visible: root.hapticIntensity >= 0
+        }
+
+        Column {
+          width: parent.width
+          spacing: Style.space(10)
+          visible: root.hapticIntensity >= 0
+
+          Item {
+            width: parent.width
+            height: hapticHeader.implicitHeight
+            PanelSectionHeader {
+              id: hapticHeader
+              text: "TOUCHPAD HAPTICS"
+              foreground: root.bar.foreground
+              fontFamily: root.bar.fontFamily
+            }
+            InfoValue {
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              text: (hapticSlider.dragging ? Math.round(hapticSlider.liveValue) : root.hapticIntensity) + "%"
+            }
+          }
+
+          PanelSlider {
+            id: hapticSlider
+            bar: root.bar
+            width: parent.width
+            minimum: 0
+            maximum: 100
+            step: 5
+            integer: true
+            value: Math.max(0, root.hapticIntensity)
+            onReleased: function(v) { root.setHaptic(v) }
+          }
         }
 
         // ---------- Power profile picker ----------

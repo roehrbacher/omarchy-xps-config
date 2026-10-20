@@ -69,3 +69,6 @@ hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 
 -- 3-finger down/up: show-desktop, restore, Super+Space menu, or dismiss it.
 require("hypr.show-desktop")
+
+-- 4-finger swipes: volume up/down, next/previous track.
+require("hypr.media-gestures")

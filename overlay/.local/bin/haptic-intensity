@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Set the Dell XPS touchpad haptic strength to any value 0-100 (stock tool only offers low/mid/high).
+# The running dell-xps-touchpad-haptics daemon picks up the config change by itself within ~1 s.
+# Usage: haptic-intensity            show current value
+#        haptic-intensity 40         set exact value
+#        haptic-intensity +10 | -10  step up/down
+#        haptic-intensity pick       choose from a menu (walker)
+set -euo pipefail
+CONF="$HOME/.config/omarchy/dell-haptic.conf"
+
+current() { sed -n 's/^[[:space:]]*INTENSITY[[:space:]]*=[[:space:]]*\([0-9]\+\).*/\1/p' "$CONF" 2>/dev/null | head -1 | grep . || echo 100; }
+
+write() {
+  local v=$1
+  (( v < 0 )) && v=0; (( v > 100 )) && v=100
+  mkdir -p "$(dirname "$CONF")"
+  printf '# Dell XPS touchpad haptic intensity (0-100).\n# Presets: low=10, mid=50, high=100.\nINTENSITY=%s\n' "$v" >"$CONF"
+  command -v notify-send >/dev/null && notify-send -t 1500 -h string:x-canonical-private-synchronous:haptic "Touchpad haptics" "Intensity $v" -h int:value:"$v" || true
+  echo "$v"
+}
+
+case "${1:-}" in
+  "") current ;;
+  pick)
+    v=$(printf '%s\n' 0 10 20 30 40 50 60 70 80 90 100 | walker --dmenu -p "Haptic intensity (now $(current))") || exit 0
+    [[ $v =~ ^[0-9]+$ ]] && write "$v" ;;
+  +[0-9]*|-[0-9]*) write $(( $(current) + $1 )) ;;
+  [0-9]*) [[ $1 =~ ^[0-9]+$ ]] || { echo "number 0-100" >&2; exit 1; }; write "$1" ;;
+  *) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac

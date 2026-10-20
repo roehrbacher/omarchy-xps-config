@@ -271,12 +271,13 @@ Panel {
   }
 
   // ---------- Touchpad haptics (dell-haptic.conf via haptic-intensity) ----------
-  property int hapticIntensity: -1
+  property int hapticIntensity: 100
+  Component.onCompleted: hapticGetProc.running = true
 
   Process {
     id: hapticGetProc
     command: ["haptic-intensity"]
-    stdout: StdioCollector { waitForEnd: true; onStreamFinished: { const v = parseInt(text); if (!isNaN(v)) root.hapticIntensity = v } }
+    stdout: StdioCollector { waitForEnd: true; onStreamFinished: { var v = parseInt(text); console.log("timon.xps-power haptic intensity read:", JSON.stringify(text)); if (!isNaN(v)) root.hapticIntensity = v } }
   }
 
   Process { id: hapticSetProc; environment: ({ HAPTIC_QUIET: "1" }) }
@@ -583,13 +584,11 @@ Panel {
         // ---------- Touchpad haptics ----------
         PanelSeparator {
           foreground: root.bar.foreground
-          visible: root.hapticIntensity >= 0
         }
 
         Column {
           width: parent.width
           spacing: Style.space(10)
-          visible: root.hapticIntensity >= 0
 
           Item {
             width: parent.width

@@ -22,6 +22,17 @@ if ! command -v omarchy >/dev/null 2>&1; then
   exit 1
 fi
 
+# Never write shell config or restart the shell while the screen is locked,
+# a game runs, or Timon is typing: a reload while locked kills the lock screen.
+# omarchy-safe-gate comes from omarchy-shared-config (install that first).
+GATE="$HOME/.local/bin/omarchy-safe-gate"
+gate() {
+  ((DRY)) && return 0
+  [[ -x $GATE ]] || { echo "omarchy-safe-gate missing; install omarchy-shared-config first (or OMARCHY_SAFE_GATE=0)." >&2; [[ ${OMARCHY_SAFE_GATE:-1} == 0 ]]; return; }
+  "$GATE" "$@" || { echo "Not safe to install right now (locked, gaming or busy). Nothing changed after this point." >&2; exit 75; }
+}
+gate
+
 REMOVE_PATHS=()
 EXTRA_BACKUP=()
 PACKAGES=()
@@ -131,7 +142,12 @@ if command -v omarchy-shell-json-build >/dev/null || [[ -x $HOME/.local/bin/omar
   "$HOME/.local/bin/omarchy-shell-json-build" --no-reload || true
 fi
 command -v hyprctl >/dev/null && hyprctl reload >/dev/null 2>&1 || true
-command -v omarchy-restart-shell >/dev/null && omarchy-restart-shell >/dev/null 2>&1 || true
+# Re-check right before the restart (files are copied, so only wait, never abort the copy).
+if "$GATE" --lock-only --max 600 2>/dev/null; then
+  command -v omarchy-restart-shell >/dev/null && omarchy-restart-shell >/dev/null 2>&1 || true
+else
+  echo "Shell not restarted (locked). Run omarchy-restart-shell after unlocking." >&2
+fi
 
 echo
 echo "Done. Backup: $BACKUP"

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "timon.xps-power",
   "name": "XPS Power",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "author": "Timon Röhrbacher",
   "description": "Stock battery/power bar widget plus a 'Limit charging to 80%' switch (UPower charge threshold) and a battery-heart icon on the bar while the limit is on, plus a touchpad haptics strength slider",
   "kinds": [

@@ -323,27 +323,36 @@ Panel {
 
   Timer { interval: 5000; running: root.opened; repeat: true; onTriggered: root.refresh() }
 
-  // power_now, or current_now x voltage_now (this XPS has no power_now).
+  // Live watts: current_now x voltage_now (this XPS has no power_now), read
+  // in-process via FileView every 1 s (no shell spawn). The EC refreshes these
+  // about every 2 s; a light EMA (0.6 new) smooths the step without real lag.
+  property string batDir: ""
+  property real wattsEma: -1
   Process {
-    id: wattsProc
-    command: ["sh", "-c", "for b in /sys/class/power_supply/BAT*; do s=$(cat $b/status); p=$(cat $b/power_now 2>/dev/null) || p=$(( $(cat $b/current_now) * $(cat $b/voltage_now) / 1000000 )); echo \"$s $p\"; break; done"]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var parts = text.trim().split(" ")
-        var w = Math.abs(Number(parts[1]) / 1000000)
-        var moving = parts[0] === "Charging" || parts[0] === "Discharging"
-        root.powerWatts = (moving && isFinite(w) && w >= 0.5) ? (parts[0] === "Charging" ? "+" : "-") + Math.round(w) + "W " : ""
-      }
-    }
+    id: batFind
+    running: true
+    command: ["sh", "-c", "for b in /sys/class/power_supply/BAT*; do [ -e \"$b/current_now\" ] && echo \"$b\" && break; done"]
+    stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.batDir = text.trim() }
+  }
+  FileView { id: batStatusFile; path: root.batDir ? root.batDir + "/status" : ""; blockLoading: true }
+  FileView { id: batCurrentFile; path: root.batDir ? root.batDir + "/current_now" : ""; blockLoading: true }
+  FileView { id: batVoltageFile; path: root.batDir ? root.batDir + "/voltage_now" : ""; blockLoading: true }
+  function readWatts() {
+    batStatusFile.reload(); batCurrentFile.reload(); batVoltageFile.reload()
+    var st = batStatusFile.text().trim()
+    var w = Math.abs(Number(batCurrentFile.text()) * Number(batVoltageFile.text()) / 1e12)
+    var moving = st === "Charging" || st === "Discharging"
+    if (!moving || !isFinite(w) || w < 0.5) { root.wattsEma = -1; root.powerWatts = ""; return }
+    root.wattsEma = root.wattsEma < 0 ? w : 0.6 * w + 0.4 * root.wattsEma
+    root.powerWatts = (st === "Charging" ? "+" : "-") + Math.round(root.wattsEma) + "W "
   }
 
   Timer {
-    interval: 5000
-    running: root.batteryPresent && root.showPercentage
+    interval: 1000
+    running: root.batteryPresent && root.showPercentage && root.batDir !== ""
     repeat: true
     triggeredOnStart: true
-    onTriggered: if (!wattsProc.running) wattsProc.running = true
+    onTriggered: root.readWatts()
   }
 
   // Rotate the status phrase while the panel is open and we're in a

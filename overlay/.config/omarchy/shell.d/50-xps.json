@@ -3,49 +3,5 @@
     {
       "id": "timon.battery"
     }
-  ],
-  "barReplace": {
-    "omarchy.power": {
-      "id": "timon.xps-power",
-      "showPercentage": true
-    }
-  },
-  "barInsert": [
-    {
-      "after": "timon.local-ai",
-      "entry": {
-        "id": "timon.audio-passthrough"
-      }
-    }
-  ],
-  "barOrder": {
-    "left": [
-      "omarchy.menu",
-      "omarchy.workspaces",
-      "timon.hover-reveal",
-      "timon.media"
-    ],
-    "center": [
-      "timon.indicators",
-      "timon.clock",
-      "omarchy.keyboard-layout",
-      "omarchy.system-update"
-    ],
-    "right": [
-      "omarchy.tray",
-      "omarchy.tailscale",
-      "flux",
-      "omarchy.agents",
-      "timon.grok-usage",
-      "timon.local-ai",
-      "timon.audio-passthrough",
-      "timon.clipboard",
-      "timon.audio",
-      "omarchy.bluetooth",
-      "timon.network",
-      "timon.monitor",
-      "timon.xps-power",
-      "jankeesvw.notification-center"
-    ]
-  }
+  ]
 }

@@ -98,8 +98,8 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `hypr/machine-windows.lua` – Bitwarden, the Bitwarden web app and the Omarchy
   update terminal open tiled; loads `moonlight.lua` (Moonlight stream window
   size/opacity, no idle while streaming, tuned for the 1.6 display scale)
-- `omarchy/shell.d/50-xps.json` – adds the `timon.battery` service, swaps
-  the bar's battery widget for `timon.xps-power`
+- `omarchy/shell.d/50-xps.json` – adds the `timon.battery` service (non-bar
+  settings only; the bar, incl. `timon.xps-power`, is kept by hand in the live shell.json)
 - `omarchy/plugins/timon.battery` – low-battery steps on battery: a gentle notice at
   **15 %**, Omarchy's stock warning at 10 %, then at **4 %** a 60-second countdown you
   can't click away ("Hibernating to save your work. Plug in to cancel.", with a

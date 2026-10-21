@@ -342,9 +342,12 @@ Panel {
     var st = batStatusFile.text().trim()
     var w = Math.abs(Number(batCurrentFile.text()) * Number(batVoltageFile.text()) / 1e12)
     var moving = st === "Charging" || st === "Discharging"
-    if (!moving || !isFinite(w) || w < 0.5) { root.wattsEma = -1; root.powerWatts = ""; return }
+    if (st === "" || !isFinite(w)) { root.wattsEma = -1; root.powerWatts = ""; return }
+    // Holding / full / not charging: show a plain "0W" (no sign).
+    if (!moving || w < 0.5) { root.wattsEma = -1; root.powerWatts = "0W "; return }
     root.wattsEma = root.wattsEma < 0 ? w : 0.6 * w + 0.4 * root.wattsEma
-    root.powerWatts = (st === "Charging" ? "+" : "-") + Math.round(root.wattsEma) + "W "
+    var n = Math.round(root.wattsEma)
+    root.powerWatts = (n === 0 ? "" : (st === "Charging" ? "+" : "-")) + n + "W "
   }
 
   Timer {

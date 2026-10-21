@@ -16,12 +16,37 @@
       "entry": {
         "id": "timon.audio-passthrough"
       }
-    },
-    {
-      "after": "timon.monitor",
-      "entry": {
-        "id": "timon.auto-brightness"
-      }
     }
-  ]
+  ],
+  "barOrder": {
+    "left": [
+      "omarchy.menu",
+      "omarchy.workspaces",
+      "timon.hover-reveal",
+      "timon.media"
+    ],
+    "center": [
+      "timon.indicators",
+      "timon.clock",
+      "omarchy.keyboard-layout",
+      "omarchy.system-update"
+    ],
+    "right": [
+      "omarchy.tray",
+      "omarchy.tailscale",
+      "flux",
+      "omarchy.agents",
+      "timon.grok-usage",
+      "timon.local-ai",
+      "timon.audio-passthrough",
+      "timon.clipboard",
+      "timon.audio",
+      "omarchy.bluetooth",
+      "timon.network",
+      "timon.auto-brightness",
+      "timon.monitor",
+      "timon.xps-power",
+      "jankeesvw.notification-center"
+    ]
+  }
 }

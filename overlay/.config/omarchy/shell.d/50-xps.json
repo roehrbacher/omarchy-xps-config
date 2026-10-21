@@ -43,7 +43,6 @@
       "timon.audio",
       "omarchy.bluetooth",
       "timon.network",
-      "timon.auto-brightness",
       "timon.monitor",
       "timon.xps-power",
       "jankeesvw.notification-center"

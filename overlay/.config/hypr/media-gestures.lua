@@ -2,22 +2,21 @@
 -- Four-finger touchpad swipes (three-finger swipes stay workspace /
 -- show-desktop, see machine-input.lua and show-desktop.lua):
 --   up / down    volume follows the fingers live (1 % per STEP px), both
---                ways within one swipe, with the stock volume OSD
+--                ways within one swipe, with the shell volume OSD
 --   left         (right to left) next track
 --   right        (left to right) previous track
 -- Same commands as the stock media keys (default/hypr/bindings/media.lua).
 -- Undo: remove the require line in machine-input.lua.
 
 local STEP = 9      -- px of finger travel per 1 % volume
-local QUANTUM = 0.5 -- send changes in 0.5 % pieces (smooth, few processes)
 local TRACK = 80    -- px of horizontal travel needed to skip a track
 
 -- Hyprland locks a gesture's direction at its start (separate up / down
 -- binds), but event.delta is the signed raw vertical movement in px (down is
--- positive) for every update. So both binds do the same thing: volume follows
--- the signed finger movement, and reversing mid-swipe reverses the volume.
--- gesture-volume (in ~/.local/bin) resolves the sink once per swipe and
--- coalesces updates into single wpctl writes.
+-- positive) on every update (~7 ms apart). So both binds do the same thing:
+-- volume follows the signed finger movement 1:1, both ways within one swipe.
+-- gesture-volume (~/.local/bin) hands each delta to the running shell, which
+-- sets the volume in-process like the popup slider.
 local function dy(event)
   local d = event and event.delta
   if type(d) == "number" then return d end
@@ -26,27 +25,15 @@ local function dy(event)
 end
 
 local function volume(direction)
-  local acc = 0
   hl.gesture({
     fingers = 4,
     direction = direction,
     action = {
-      start = function()
-        acc = 0
-        hl.exec_cmd("gesture-volume begin")
-      end,
+      start = function() end,
+      finish = function() end,
       update = function(event)
-        acc = acc - dy(event) / STEP   -- fingers up = louder
-        local q = math.floor(math.abs(acc) / QUANTUM) * QUANTUM
-        if q > 0 then
-          local send = acc > 0 and q or -q
-          acc = acc - send
-          hl.exec_cmd(string.format("gesture-volume %+.1f", send))
-        end
-      end,
-      finish = function()
-        acc = 0
-        hl.exec_cmd("gesture-volume end")
+        local pct = -dy(event) / STEP   -- fingers up = louder
+        if pct ~= 0 then hl.exec_cmd(string.format("gesture-volume %+.3f", pct)) end
       end,
     },
   })

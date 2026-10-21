@@ -16,6 +16,12 @@
       "entry": {
         "id": "timon.audio-passthrough"
       }
+    },
+    {
+      "after": "timon.monitor",
+      "entry": {
+        "id": "timon.auto-brightness"
+      }
     }
   ]
 }

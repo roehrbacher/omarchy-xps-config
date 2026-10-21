@@ -182,3 +182,12 @@ External plugins are pinned in `plugins.lock` (this repo, XPS-only) and in
 `omarchy-shared-config/plugins.lock` (both machines). The weekly plugin round checks
 every entry in both files against upstream, reviews the full diff, and updates the
 copy only when it is safe.
+
+## Auto Brightness
+
+`timon.auto-brightness` (own private repo github.com/roehrbacher/omarchy-auto-brightness, MIT)
+drives the screen and keyboard light from the XPS's two ambient light sensors
+(iio `als`, raw × scale), no camera. `install.sh` clones it into the plugins
+folder and runs its installer (user service `omarchy-auto-brightness`);
+`50-xps.json` puts its icon after the display widget. Settings:
+`~/.config/omarchy/auto-brightness.json` or the bar popup.

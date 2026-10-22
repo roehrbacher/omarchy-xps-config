@@ -65,32 +65,7 @@ o.window("(localsend|org\\.localsend\\.localsend_app)", { scroll_touchpad = 0.08
 
 -- Enable touchpad gestures for changing workspaces.
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Gestures/
--- Stock smooth swipe (follows the fingers, but skips empty workspaces).
--- Undo: uncomment this line and delete the block below.
--- hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
-
--- 3-finger horizontal swipe: same range as Super+wheel (lowest occupied - 1
--- .. highest occupied + 1, empty ones in between, wraps like stock) via the
--- shared omarchy-workspace-scroll. One step per swipe, on release; it jumps
--- (no finger-following animation). Fingers left = next, like stock.
-do
-  local acc = 0
-  hl.gesture({
-    fingers = 3,
-    direction = "horizontal",
-    action = {
-      start = function() acc = 0 end,
-      update = function(event)
-        if event and event.delta then acc = acc + (event.delta.x or 0) end
-      end,
-      finish = function(event)
-        if event and event.cancelled == true then return end
-        if acc <= -40 then hl.exec_cmd("setsid -f omarchy-workspace-scroll next")
-        elseif acc >= 40 then hl.exec_cmd("setsid -f omarchy-workspace-scroll prev") end
-      end,
-    },
-  })
-end
+hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
 
 -- 3-finger down/up: show-desktop, restore, Super+Space menu, or dismiss it.
 require("hypr.show-desktop")

@@ -140,12 +140,9 @@ post_install
 
 # shell.json is never built here: the live file (and its bar) belongs to Timon.
 command -v hyprctl >/dev/null && hyprctl reload >/dev/null 2>&1 || true
-# Re-check right before the restart (files are copied, so only wait, never abort the copy).
-if "$GATE" --lock-only --max 600 2>/dev/null; then
-  command -v omarchy-restart-shell >/dev/null && omarchy-restart-shell >/dev/null 2>&1 || true
-else
-  echo "Shell not restarted (locked). Run omarchy-restart-shell after unlocking." >&2
-fi
+# Never restart the shell from an install (not even after unlock): mark it,
+# the timon.reload-needed bar icon restarts it on click.
+if command -v omarchy-mark-reload-needed >/dev/null; then omarchy-mark-reload-needed "omarchy-xps-config install"; else echo "Restart the shell when convenient: omarchy restart shell"; fi
 
 echo
 echo "Done. Backup: $BACKUP"

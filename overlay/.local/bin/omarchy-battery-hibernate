@@ -1,33 +1,57 @@
 #!/bin/bash
-# Managed by omarchy-xps-config. Save the session to disk (hibernate), used by
-# timon.battery's last-chance countdown and for testing by hand:
+# Part of omarchy-low-battery-hibernate
+# (github.com/roehrbacher/omarchy-low-battery-hibernate). Save the session to
+# disk (hibernate). Run by timon.battery's last-chance countdown, or by hand:
 #
 #   omarchy-battery-hibernate            lock, end Insomnia, hibernate (suspend if that fails)
 #   omarchy-battery-hibernate --dry-run  only print what it would do
 #
 # The laptop turns off completely; press power to resume at the lock screen.
 #
-# Insomnia holds a "sleep" block lock, which also blocks hibernate. Its unit is
-# stopped directly (not via `omarchy-insomnia stop`): without a stop reason its
-# end hook does nothing, so it cannot start a suspend of its own (lid closed on
-# battery) that would race this hibernate. `systemctl hibernate -i` is not used:
-# ignoring inhibitors needs an admin password prompt under polkit's defaults.
+# Insomnia (github.com/roehrbacher/omarchy-insomnia) holds a "sleep" block
+# lock, which also blocks hibernate and suspend, plus "handle-lid-switch". Its
+# unit is stopped directly (not via `omarchy-insomnia stop`): without a stop
+# reason its end hook does nothing, so it cannot start a suspend of its own
+# (lid closed on battery) that would race this hibernate.
+# For the same reason this holds its own short handle-lid-switch lock while it
+# works: with the lid closed, logind would otherwise suspend the moment
+# Insomnia lets go of the lid, before the hibernate starts. That lock does not
+# block hibernate or suspend.
+# `systemctl hibernate -i` is not used: ignoring inhibitors needs an admin
+# password prompt under polkit's defaults.
+#
+# Testing: OMARCHY_INSOMNIA_UNIT=<name>.service picks the Insomnia unit to end.
 set -u
 DRY=0
 [[ ${1:-} == --dry-run ]] && DRY=1
+INSOMNIA_UNIT=${OMARCHY_INSOMNIA_UNIT:-omarchy-insomnia.service}
 run() { if (( DRY )); then echo "would run: $*"; else "$@"; fi; }
 
-run omarchy-system-lock
-(( DRY )) || sleep 1
-if systemctl --user is-active --quiet omarchy-insomnia.service; then
-  run systemctl --user stop omarchy-insomnia.service
+# The part that runs inside the lid lock.
+if [[ ${1:-} == _inner ]]; then
+  if systemctl --user is-active --quiet "$INSOMNIA_UNIT"; then
+    systemctl --user stop "$INSOMNIA_UNIT"
+  fi
+  if systemctl hibernate; then
+    # Keep the lid lock until the hibernate is under way.
+    sleep "${OMARCHY_HIBERNATE_SETTLE:-3}"
+  else
+    logger -t omarchy-battery-hibernate "hibernate failed, suspending instead"
+    omarchy-notification-send -u critical "Hibernate failed" "Suspending instead." >/dev/null 2>&1 || true
+    systemctl suspend
+  fi
+  exit
 fi
+
+run omarchy-system-lock
 if (( DRY )); then
-  echo "would run: systemctl hibernate || systemctl suspend"
+  echo "would run (holding handle-lid-switch): systemctl --user stop $INSOMNIA_UNIT (if running); systemctl hibernate || systemctl suspend"
   exit 0
 fi
-if ! systemctl hibernate; then
-  logger -t omarchy-battery-hibernate "hibernate failed, suspending instead"
-  omarchy-notification-send -u critical "Hibernate failed" "Suspending instead." >/dev/null 2>&1 || true
-  systemctl suspend
+sleep 1
+self=$(readlink -f "$0")
+if command -v systemd-inhibit >/dev/null; then
+  exec systemd-inhibit --what=handle-lid-switch --mode=block --who="omarchy-battery-hibernate" \
+    --why="Hibernating; keep logind from suspending first" "$self" _inner
 fi
+exec "$self" _inner

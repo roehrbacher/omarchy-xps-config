@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "timon.battery",
-  "name": "My Battery",
-  "version": "2.0.0",
+  "name": "Low Battery Hibernate",
+  "version": "2.1.0",
   "author": "Timon Röhrbacher",
-  "description": "Last-chance suspend: locked 90 s countdown at 5 % on battery, then suspend. Low-battery warning stays with stock omarchy.battery.",
+  "description": "Low-battery steps: notice at 15 %, then at 4 % a 60 s countdown card (Hibernate now / plug in to cancel) that locks, ends Insomnia and hibernates (suspend if that fails). Pairs with Insomnia.",
   "kinds": [
     "service"
   ],

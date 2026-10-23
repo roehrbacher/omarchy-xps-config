@@ -7,16 +7,19 @@ import qs.Commons
 import "BatteryModel.js" as BatteryModel
 
 // timon.battery: low-battery steps on top of Omarchy's stock 10 % warning.
+// github.com/roehrbacher/omarchy-low-battery-hibernate. Pairs with Insomnia
+// (github.com/roehrbacher/omarchy-insomnia): the countdown also runs with the
+// lid closed during a session, and the hibernate ends the session first.
 //   15 %  a gentle notification (once per discharge)
 //    4 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
 //         skips the wait), then omarchy-battery-hibernate: lock, end Insomnia,
 //         hibernate (suspend if that fails). Plugging in cancels it.
-// 4 % of 68.6 Wh is ~2.7 Wh. The 60 s countdown (<=0.25 Wh) plus the hibernate
-// itself (~0.3 Wh) need ~0.5 Wh, so 4 % leaves ~5x margin for gauge error near
-// empty. This is tuned for a NEW battery (full = design capacity). With an older,
+// On a ~70 Wh battery 4 % is ~2.7 Wh. The 60 s countdown (<=0.25 Wh) plus the
+// hibernate itself (~0.3 Wh) need ~0.5 Wh, so 4 % leaves ~5x margin for gauge
+// error near empty. This is tuned for a NEW battery (full = design capacity). With an older,
 // worn battery the gauge gets less accurate near empty: raise
 // countdownTriggerPercent to 6-8 %.
-// Charging: at fullChargeNoticePercent (80 %, the charge limit) on AC, one
+// Charging: at fullChargeNoticePercent (80 %, e.g. a firmware charge limit) on AC, one
 // "Fully charged" notification per plugged-in session. Unplugging, or dropping
 // below fullChargeRearmPercent while plugged in, re-arms it.
 // Test it: omarchy-shell timon.battery testFullChargeNotice

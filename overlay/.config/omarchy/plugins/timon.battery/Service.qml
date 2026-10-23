@@ -11,14 +11,13 @@ import "BatteryModel.js" as BatteryModel
 // (github.com/roehrbacher/omarchy-insomnia): the countdown also runs with the
 // lid closed during a session, and the hibernate ends the session first.
 //   15 %  a gentle notification (once per discharge)
-//    4 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
+//    5 %  a locked 60-second countdown (it can't be clicked away, "Hibernate now"
 //         skips the wait), then omarchy-battery-hibernate: lock, end Insomnia,
 //         hibernate (suspend if that fails). Plugging in cancels it.
-// On a ~70 Wh battery 4 % is ~2.7 Wh. The 60 s countdown (<=0.25 Wh) plus the
-// hibernate itself (~0.3 Wh) need ~0.5 Wh, so 4 % leaves ~5x margin for gauge
-// error near empty. This is tuned for a NEW battery (full = design capacity). With an older,
-// worn battery the gauge gets less accurate near empty: raise
-// countdownTriggerPercent to 6-8 %.
+// On a ~70 Wh battery 5 % is ~3.5 Wh. The 60 s countdown (<=0.25 Wh) plus the
+// hibernate itself (~0.3 Wh) need ~0.5 Wh, so 5 % leaves a wide margin for gauge
+// error near empty. With an older, worn battery the gauge gets less accurate near
+// empty: raise HIBERNATE_PERCENT to 6-8.
 // Charging: at fullChargeNoticePercent (80 %, e.g. a firmware charge limit) on AC, one
 // "Fully charged" notification per plugged-in session. Unplugging, or dropping
 // below fullChargeRearmPercent while plugged in, re-arms it.
@@ -32,7 +31,17 @@ Item {
   property var shell: null
   property var manifest: null
 
-  readonly property int countdownTriggerPercent: 4
+  // Default 5 %; set HIBERNATE_PERCENT in ~/.config/omarchy/low-battery-hibernate.conf
+  // (e.g. 6-8 for a worn battery). Insomnia refuses to start at/below the same value.
+  property int countdownTriggerPercent: 5
+  FileView {
+    path: Quickshell.env("HOME") + "/.config/omarchy/low-battery-hibernate.conf"
+    watchChanges: true
+    printErrors: false
+    onFileChanged: reload()
+    onLoaded: root.countdownTriggerPercent = BatteryModel.parseTriggerPercent(text())
+    onLoadFailed: root.countdownTriggerPercent = 5
+  }
   readonly property int noticePercent: 15
   property bool noticeSent: false
   readonly property int fullChargeNoticePercent: 80

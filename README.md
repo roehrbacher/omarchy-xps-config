@@ -98,6 +98,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 - `hypr/machine-windows.lua` – Bitwarden, the Bitwarden web app and the Omarchy
   update terminal open tiled; loads `moonlight.lua` (Moonlight stream window
   size/opacity, no idle while streaming, tuned for the 1.6 display scale)
+- `omarchy/menu.d/50-xps.jsonc` – the Omarchy menu's **Hibernate** runs `omarchy-battery-hibernate`
+  instead of `systemctl hibernate`, which Insomnia's sleep lock refuses silently; the script
+  ends Insomnia first. Undo: delete the file and run `omarchy-menu-build`.
 - `omarchy/shell.d/50-xps.json` – adds the `timon.battery` service (non-bar
   settings only; the bar, incl. `timon.xps-power`, is kept by hand in the live shell.json)
 - `omarchy/plugins/timon.battery` + `.local/bin/omarchy-battery-hibernate` – vendored copy of my

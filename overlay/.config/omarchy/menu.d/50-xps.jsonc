@@ -1,0 +1,10 @@
+{
+  // Laptop menu tweaks (omarchy-xps-config), merged after 00-shared.jsonc by
+  // omarchy-menu-build.
+  //
+  // Hibernate: the stock `systemctl hibernate` is refused while an Insomnia
+  // session holds its sleep lock, so nothing happens. omarchy-battery-hibernate
+  // (omarchy-low-battery-hibernate) locks, ends Insomnia, then hibernates
+  // (suspend if that fails). Undo: delete this row.
+  "system.hibernate": {"action":"omarchy-battery-hibernate"},
+}

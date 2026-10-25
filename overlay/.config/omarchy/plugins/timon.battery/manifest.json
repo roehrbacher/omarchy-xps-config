@@ -4,7 +4,7 @@
   "name": "Low Battery Hibernate",
   "version": "2.2.0",
   "author": "Timon Röhrbacher",
-  "description": "Low-battery steps: notice at 15 %, then at 5 % (configurable) a 60 s countdown card (Hibernate now / plug in to cancel) that locks, ends Insomnia and hibernates (suspend if that fails). Pairs with Insomnia.",
+  "description": "Low-battery steps: notice at 15 %, then at 8 % (configurable) a 60 s countdown card (Hibernate now / plug in to cancel) that locks, ends Insomnia and hibernates (suspend if that fails). Pairs with Insomnia.",
   "kinds": [
     "service"
   ],

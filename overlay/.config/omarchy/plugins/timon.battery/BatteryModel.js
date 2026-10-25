@@ -9,7 +9,7 @@ function isDischarging(device, onBattery, dischargingState) {
 
 function shouldStartCountdown(level, active, triggerPercent) {
   if (active) return true
-  var trigger = triggerPercent == null ? 5 : triggerPercent
+  var trigger = triggerPercent == null ? 8 : triggerPercent
   return level >= 0 && level <= trigger
 }
 
@@ -23,12 +23,12 @@ function fullChargeStep(level, pluggedIn, sent, threshold, rearmPercent) {
 }
 
 // Hibernate trigger from ~/.config/omarchy/low-battery-hibernate.conf
-// ("HIBERNATE_PERCENT=6"). Missing, empty or invalid: 5. Allowed: 1..50.
+// ("HIBERNATE_PERCENT=6"). Missing, empty or invalid: 8. Allowed: 1..50.
 // Insomnia (omarchy-insomnia) reads the same file with the same rule.
 function parseTriggerPercent(text) {
   var m = /^[ \t]*HIBERNATE_PERCENT[ \t]*=[ \t]*["']?([0-9]+)["']?[ \t]*(#.*)?$/m.exec(String(text || ""))
   var n = m ? parseInt(m[1], 10) : NaN
-  return n >= 1 && n <= 50 ? n : 5
+  return n >= 1 && n <= 50 ? n : 8
 }
 
 function formatCountdown(sec) {

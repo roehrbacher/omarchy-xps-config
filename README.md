@@ -105,9 +105,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   settings only; the bar, incl. `timon.xps-power`, is kept by hand in the live shell.json)
 - `omarchy/plugins/timon.battery` + `.local/bin/omarchy-battery-hibernate` – vendored copy of my
   own repo [omarchy-low-battery-hibernate](https://github.com/roehrbacher/omarchy-low-battery-hibernate)
-  (private; copy of `67a369f`, tests there). Update: change it there, copy the files here.
+  (private; copy of `3189cd3`, tests there). Update: change it there, copy the files here.
   Low-battery steps on battery: a gentle notice at
-  **15 %**, Omarchy's stock warning at 10 %, then at **5 %** a 60-second countdown you
+  **15 %**, Omarchy's stock warning at 10 %, then at **8 %** a 60-second countdown you
   can't click away ("Hibernating to save your work. Plug in to cancel.", with a
   *Hibernate now* button) in a flat Omarchy-style card in the theme's urgent colour.
   At 0 it runs `.local/bin/omarchy-battery-hibernate`: lock, end Insomnia, hibernate
@@ -115,9 +115,9 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
   It also runs with the lid closed during an Insomnia session (Insomnia no longer ends
   at 20 %, this is its safety net); while ending Insomnia it holds the lid switch itself
   so logind can't suspend first.
-  5 % (default) is ~3.5 Wh; countdown + hibernate need ~0.5 Wh.
+  8 % (default) is ~5.5 Wh; countdown + hibernate need ~0.5 Wh.
   The level is `HIBERNATE_PERCENT` in `~/.config/omarchy/low-battery-hibernate.conf`
-  (read live; untracked). **Old or worn battery?** Raise it to 6-8. Insomnia reads
+  (read live; untracked). This XPS sets it to 8 explicitly (same as the default). Insomnia reads
   the same value and refuses to start on battery at or below it, so they never mismatch. Preview without hibernating:
   `omarchy-shell timon.battery preview`. The AC/battery power-profile switch comes from
   Omarchy's stock `omarchy.battery` service.

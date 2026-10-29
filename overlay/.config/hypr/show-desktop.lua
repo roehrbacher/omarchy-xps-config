@@ -1,7 +1,8 @@
 -- Managed by omarchy-xps-config. Loaded from hypr/machine-input.lua.
 -- Three-finger vertical swipe:
 --   down  — hide windows (show desktop), or close the Omarchy menu if it is open
---   up    — restore hidden windows, or open Super+Space (omarchy-menu) if none
+--   up    — restore hidden windows, or open the workspace overview
+--           (timon.overview) if none; down closes the overview when it is open
 -- Horizontal workspace swipe stays in input.lua.
 --
 -- Windows stay on the current workspace, floated and slid off the bottom so
@@ -382,7 +383,7 @@ local function pulled_ratio()
   if not session or not session.travel or session.travel <= 0 then
     return 0
   end
-  if session.kind == "hide" or session.kind == "dismiss_menu" then
+  if session.kind == "hide" or session.kind == "dismiss_menu" or session.kind == "dismiss_overview" then
     return session.offset / session.travel
   end
   return (session.travel - session.offset) / session.travel
@@ -495,6 +496,15 @@ local function collect_parked(workspace_id)
   return items, stash
 end
 
+local function overview_visible()
+  for _, layer in ipairs(hl.get_layers({ namespace = "timon-overview" }) or {}) do
+    if layer.mapped then
+      return true
+    end
+  end
+  return false
+end
+
 local function begin_dismiss_menu()
   new_pointer_session("dismiss_menu", { offset = 0 })
 end
@@ -503,12 +513,24 @@ local function begin_launcher()
   new_pointer_session("launcher", { offset = travel_px() })
 end
 
+local function begin_overview()
+  new_pointer_session("overview", { offset = travel_px() })
+end
+
+local function begin_dismiss_overview()
+  new_pointer_session("dismiss_overview", { offset = 0 })
+end
+
 local function begin_hide()
   if session then
     return
   end
   if omarchy_menu_visible() then
     begin_dismiss_menu()
+    return
+  end
+  if overview_visible() then
+    begin_dismiss_overview()
     return
   end
   local workspace = hl.get_active_workspace()
@@ -561,10 +583,10 @@ local function begin_show()
   local workspace_id = workspace.id
   local items, stash = collect_parked(workspace_id)
   if #items == 0 then
-    if omarchy_menu_visible() then
+    if omarchy_menu_visible() or overview_visible() then
       return
     end
-    begin_launcher()
+    begin_overview()
     return
   end
 
@@ -604,6 +626,14 @@ local function finish_gesture(event)
   if kind == "launcher" then
     if commit then
       hl.exec_cmd("omarchy-menu summon")
+    end
+  elseif kind == "overview" then
+    if commit then
+      hl.exec_cmd("omarchy-shell shell summon timon.overview")
+    end
+  elseif kind == "dismiss_overview" then
+    if commit then
+      hl.exec_cmd("omarchy-shell shell hide timon.overview")
     end
   elseif kind == "dismiss_menu" then
     if commit then

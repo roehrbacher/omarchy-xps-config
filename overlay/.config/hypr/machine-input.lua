@@ -65,10 +65,9 @@ o.window("(localsend|org\\.localsend\\.localsend_app)", { scroll_touchpad = 0.08
 
 -- Enable touchpad gestures for changing workspaces.
 -- See https://wiki.hypr.land/Configuring/Advanced-and-Cool/Gestures/
+-- Stock swipe: only existing workspaces, empty ones skipped (plus a new one
+-- past the last, gestures:workspace_swipe_create_new).
 hl.gesture({ fingers = 3, direction = "horizontal", action = "workspace" })
--- Swipe range lowest occupied - 1 .. highest + 1, empty ones included
--- (keeps those empties alive as persistent workspaces). Undo: delete this line.
-require("hypr.workspace-range")
 
 -- 3-finger down/up: show-desktop, restore, Super+Space menu, or dismiss it.
 require("hypr.show-desktop")

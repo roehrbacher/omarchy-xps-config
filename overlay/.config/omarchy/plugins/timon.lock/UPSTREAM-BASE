@@ -1,0 +1,5 @@
+# timon.lock is a clone of omarchy.lock. Files below were copied from this upstream base.
+plugin=omarchy.lock
+omarchy=4.0.6-1
+source=/usr/share/omarchy/shell/plugins/lock
+LockView.qml sha256=8cfb7acbe062086ae90939f1e9b925ed2beac18e903b5e7f9d14a638d7cf5807

@@ -2,7 +2,10 @@
 -- Three-finger vertical swipe:
 --   down  — hide windows (show desktop), or close the Omarchy menu if it is open
 --   up    — restore hidden windows, or open the workspace overview
---           (timon.overview) if none; down closes the overview when it is open
+--           (timon.overview) if none; down closes the overview when it is open.
+--           The overview follows the fingers 1:1: every update writes
+--           "<open|close> <track|commit|cancel> <0..1>" to
+--           $XDG_RUNTIME_DIR/timon-overview-gesture, which the overlay watches.
 -- Horizontal workspace swipe stays in input.lua.
 --
 -- Windows stay on the current workspace, floated and slid off the bottom so
@@ -13,6 +16,19 @@ local PARK_TAG = "showdesk"
 local COMMIT_RATIO = 0.2
 local FLICK_RATIO = 0.08
 local FLICK_PX_PER_MS = 0.7
+
+local OVERVIEW_FILE = (os.getenv("XDG_RUNTIME_DIR") or "/tmp") .. "/timon-overview-gesture"
+
+local overview_seq = 0
+local function overview_signal(dir, state, progress)
+  local f = io.open(OVERVIEW_FILE, "w")
+  if f then
+    overview_seq = overview_seq + 1
+    f:write(string.format("%s %s %.4f %d\n", dir, state, progress or 0, overview_seq))
+    f:close()
+  end
+end
+overview_signal("close", "cancel", 0) -- make sure the file exists for the watcher
 
 local persist_rules = {}
 local memory = {}
@@ -613,7 +629,13 @@ local function track(event)
   end
   session.last_time = event.time_ms
   session.offset = math.max(0, math.min(session.travel, session.offset + dy))
-  place_session()
+  if session.kind == "overview" then
+    overview_signal("open", "track", pulled_ratio())
+  elseif session.kind == "dismiss_overview" then
+    overview_signal("close", "track", pulled_ratio())
+  else
+    place_session()
+  end
 end
 
 local function finish_gesture(event)
@@ -628,13 +650,9 @@ local function finish_gesture(event)
       hl.exec_cmd("omarchy-menu summon")
     end
   elseif kind == "overview" then
-    if commit then
-      hl.exec_cmd("omarchy-shell shell summon timon.overview")
-    end
+    overview_signal("open", commit and "commit" or "cancel", pulled_ratio())
   elseif kind == "dismiss_overview" then
-    if commit then
-      hl.exec_cmd("omarchy-shell shell hide timon.overview")
-    end
+    overview_signal("close", commit and "commit" or "cancel", pulled_ratio())
   elseif kind == "dismiss_menu" then
     if commit then
       hl.exec_cmd("omarchy-menu close")

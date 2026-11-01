@@ -8,8 +8,11 @@ hl.unbind("F9")
 hl.unbind("SUPER + SHIFT + code:201")
 o.bind("SUPER + D", "Start dictation (push-to-talk)", "voxtype record start", { repeating = false })
 o.bind("SUPER + D", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
--- If Super is let go before D, stop on the Super release too (no stuck recording).
-o.bind("SUPER + Super_L", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
+-- If Super is let go before D, the D release no longer matches SUPER + D, so
+-- also stop on the Super release. Hyprland may report that release with or
+-- without SUPER still set, so bind both (a stop while idle does nothing).
+o.bind("SUPER + Super_L", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true, non_consuming = true })
+o.bind("Super_L", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true, non_consuming = true })
 
 -- Workspace keys by key name instead of stock code:10..19. This laptop's
 -- hotkey/sensor devices send key-less events; Hyprland matches those against

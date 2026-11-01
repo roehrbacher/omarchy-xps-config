@@ -1,23 +1,12 @@
 -- Managed by omarchy-xps-config. XPS-only key bindings
 -- (loaded from bindings.lua after hypr/shared-bindings.lua).
 
--- Voxtype push-to-talk: hold Right Super (key name Super_R; a raw code:134 bind matched key-less events here and fired by itself) or the
--- Copilot key (sends Super+Shift+F23, in the right-Super spot on this
--- keyboard) to dictate, release to paste. Replaces the stock F9 push-to-talk
--- and the stock Copilot-key Omarchy menu. Neither key alone triggers any
--- other bind; Voxtype pastes only after all modifiers are released.
+-- Voxtype: Super+D toggles dictation (start/stop). No push-to-talk.
+-- Replaces the stock F9 push-to-talk. The stock Copilot-key Omarchy menu
+-- stays unbound, so the Copilot key does nothing on its own.
 hl.unbind("F9")
 hl.unbind("SUPER + SHIFT + code:201")
-o.bind("Super_R", "Start dictation (push-to-talk)", "voxtype record start", { repeating = false })
-o.bind("Super_R", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
-o.bind("SUPER + Super_R", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
--- Copilot key by key name, not code:201 (see below). With Super+Shift held the
--- key resolves to F23 or XF86Assistant, so both are bound; a doubled start or
--- stop is ignored by Voxtype.
-for _, sym in ipairs({ "F23", "XF86Assistant" }) do
-  o.bind("SUPER + SHIFT + " .. sym, "Start dictation (push-to-talk)", "voxtype record start", { repeating = false })
-  o.bind("SUPER + SHIFT + " .. sym, "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
-end
+o.bind("SUPER + D", "Toggle dictation", "voxtype record toggle")
 
 -- Workspace keys by key name instead of stock code:10..19. This laptop's
 -- hotkey/sensor devices send key-less events; Hyprland matches those against

@@ -36,7 +36,7 @@ whatever it replaces, `./install.sh --dry-run` shows what would change, and
 - **Touchpad:** speed, natural scrolling, three-finger gestures
 - **Audio:** speaker calibrator plugin, passthrough headphones (USB-C;
   the mic is the system default)
-- **Dictation:** Voxtype on the Arc B390 (Vulkan, Whisper large-v3-turbo q5_0, like the PC), held on the Copilot key
+- **Dictation:** Voxtype on the Arc B390 (Vulkan, Whisper large-v3-turbo q5_0, like the PC), toggled with Super+D
 - **Apps:** Moonlight streaming window rules, local AI model for the bar toggle
 - **Fonts:** bar and terminal sizes for the laptop screen
 
@@ -58,7 +58,7 @@ Backups go to `~/.local/share/omarchy-config-backups/omarchy-xps-config/`;
 
 ## Everything in here
 
-- `hypr/machine-bindings.lua` – hold the Copilot key to dictate with Voxtype
+- `hypr/machine-bindings.lua` – Super+D toggles Voxtype dictation
   (F9 and the stock Copilot-key menu are unbound); middle click / three-finger
   click plays or pauses; Super+Shift+Space left unbound
 - **Lid** – closing the lid suspends, on battery **and on AC**. This is

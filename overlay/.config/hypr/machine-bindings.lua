@@ -1,18 +1,10 @@
 -- Managed by omarchy-xps-config. XPS-only key bindings
 -- (loaded from bindings.lua after hypr/shared-bindings.lua).
 
--- Voxtype: hold Super+D to talk, release to paste (push-to-talk).
--- Replaces the stock F9 push-to-talk. The stock Copilot-key Omarchy menu
--- stays unbound, so the Copilot key does nothing on its own.
-hl.unbind("F9")
+-- Voxtype push-to-talk (Shift + Left Alt) lives in shared-bindings.lua.
+-- The stock Copilot-key Omarchy menu stays unbound, so the Copilot key
+-- does nothing on its own.
 hl.unbind("SUPER + SHIFT + code:201")
-o.bind("SUPER + D", "Start dictation (push-to-talk)", "voxtype record start", { repeating = false })
-o.bind("SUPER + D", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true })
--- If Super is let go before D, the D release no longer matches SUPER + D, so
--- also stop on the Super release. Hyprland may report that release with or
--- without SUPER still set, so bind both (a stop while idle does nothing).
-o.bind("SUPER + Super_L", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true, non_consuming = true })
-o.bind("Super_L", "Stop dictation (push-to-talk)", "voxtype record stop", { release = true, non_consuming = true })
 
 -- Workspace keys by key name instead of stock code:10..19. This laptop's
 -- hotkey/sensor devices send key-less events; Hyprland matches those against

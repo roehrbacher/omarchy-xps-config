@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 Panel {
@@ -17,7 +18,9 @@ Panel {
   readonly property var barIdentity: hostWidget || root
   readonly property string helperPath: decodeURIComponent(
     String(Qt.resolvedUrl("speaker-calibrate.py")).replace(/^file:\/\//, ""))
-  readonly property color foreground: bar ? bar.foreground : Color.foreground
+  readonly property color foreground: bar ? bar.foreground : Commons.Color.foreground
+  readonly property color accent: Commons.Color.accent
+  readonly property color urgent: bar ? bar.urgent : Commons.Color.urgent
   readonly property color dim: Util.alpha(foreground, 0.62)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
 
@@ -33,6 +36,31 @@ Panel {
   function scoreBand(score) {
     var value = Number(score) || 0
     return value >= 80 ? "excellent" : value >= 60 ? "good" : value >= 40 ? "fair" : "rough"
+  }
+  // Words for one row of the calibration list.
+  function librarySource(entry) {
+    return entry.source === "shared" ? "shared for this model"
+      : entry.source === "imported" ? "from a shared file" : "measured here"
+  }
+  function libraryTitle(entry) {
+    if (entry.name) return String(entry.name)
+    var parts = String(entry.label || "").split(" · ")
+    return parts.slice(0, 2).join(" · ") || "Calibration"
+  }
+  function libraryDescription(entry) {
+    var parts = String(entry.label || "").split(" · ")
+    var bits = [root.librarySource(entry)]
+    if (parts.length > 2) bits.push(parts.slice(2).join(" · "))
+    if (entry.pinned === true) bits.push("pinned")
+    if (entry.playing === true) bits.unshift("Playing now")
+    return bits.join("  ·  ")
+  }
+  // A registry row that is already in the list plays from the list.
+  function libraryEntryFor(registryId) {
+    var rows = service.status.library || []
+    for (var index = 0; index < rows.length; index++)
+      if (rows[index].registry === registryId) return rows[index]
+    return null
   }
   // Words for one row of the registry's list for this machine.
   function registryLabel(entry) {
@@ -50,7 +78,7 @@ Panel {
     else parts.push("not checked")
     if (Number(entry.votes || 0) > 0) parts.push(Number(entry.votes) + " found it good")
     parts.push(Number(entry.tier) >= 3 ? "this exact machine" : "this model, another variant")
-    return parts.join("  ·  ") + ". Plays as a preview; you keep it or go back."
+    return parts.join("  ·  ") + ". Plays it at once; what played before stays in the list."
   }
   property bool _optionsAdopted: false
   // Selected device rows; -1 until the device list arrives.
@@ -274,7 +302,7 @@ Panel {
   }
   // A loaded calibration says where it came from, and whether that is here.
   function importedNote() {
-    var imported = service.proposal ? service.proposal.imported : null
+    var imported = service.status.profile ? service.status.profile.imported : null
     if (!imported) return ""
     var matches = imported.matches || {}
     var file = String(imported.file || "a shared file")
@@ -284,11 +312,11 @@ Panel {
         + (matches.speakers === true ? "." : ", through a different speaker device; it now points at yours.")
     return "Loaded from " + file + ". It was made on " + from + "; this is "
       + String(imported.this_machine || "a different machine")
-      + ". Speakers differ between models, so it may sound wrong here. Install it to try; "
-      + "Switch profile brings your own back."
+      + ". Speakers differ between models, so it may sound wrong here; "
+      + "your own calibrations are one click away in the list."
   }
   function importedMismatch() {
-    var imported = service.proposal ? service.proposal.imported : null
+    var imported = service.status.profile ? service.status.profile.imported : null
     return !!(imported && imported.matches && imported.matches.machine !== true)
   }
   function sharedDescription(entry) {
@@ -422,7 +450,7 @@ Panel {
       context.stroke()
     }
     trace(comparison.internal, root.dim, 1.5)
-    trace(comparison.external, bar && bar.accent ? bar.accent : Color.accent, 2)
+    trace(comparison.external, root.accent, 2)
   }
   // Switching the correction off also drops the level to the one the
   // correction plays at, so the two can be judged on tone alone.
@@ -446,8 +474,6 @@ Panel {
   }
   function heroMeta() {
     if (service.working) return service.message
-    if (service.status.previewing === true)
-      return "A new calibration is playing and waits for your decision below."
     if (service.status.vendorTrial === true)
       return service.status.graph === "vendor-trial"
         ? "Playing the exported Omarchy tuning through Omarchy's own installer; the calibration "
@@ -705,12 +731,12 @@ Panel {
     readonly property bool _hot: actionMouse.containsMouse
     radius: Style.cornerRadius
     implicitHeight: Math.max(Style.space(44), actionContent.implicitHeight + Style.space(16))
-    color: Style.controlFill(false, _hot && enabled, root.foreground, Color.accent)
-    borderSpec: Border.controlSpec(_hot && enabled ? "hover-cursor" : "normal", root.foreground, Color.accent)
+    color: Style.controlFill(false, _hot && enabled, root.foreground, root.accent)
+    borderSpec: Border.controlSpec(_hot && enabled ? "hover-cursor" : "normal", root.foreground, root.accent)
     // Disabled rows dim, except during a quick switch: a quarter of a second
     // of dimming reads as a flicker, and the click is simply ignored then.
     opacity: enabled || (service.busy && !service.working) ? 1.0 : 0.55
-    Behavior on color { ColorAnimation { duration: 100 } }
+    Behavior on color { ColorAnimation { duration: Style.duration(100) } }
 
     Row {
       id: actionContent
@@ -764,6 +790,99 @@ Panel {
       hoverEnabled: true
       cursorShape: Qt.PointingHandCursor
       onClicked: actionRow.clicked()
+    }
+  }
+
+  // One calibration in the list.  A click on the row plays it; the pin keeps
+  // it past the last ten, and delete drops it.  The playing one is marked and
+  // cannot be deleted.
+  component LibraryRow: BorderSurface {
+    id: libraryRow
+    property var entry: ({})
+    readonly property bool playing: entry.playing === true
+    readonly property bool _hot: libraryMouse.containsMouse
+    radius: Style.cornerRadius
+    implicitHeight: Math.max(Style.space(44), libraryContent.implicitHeight + Style.space(16))
+    color: Style.controlFill(playing, _hot && enabled && !playing, root.foreground, root.accent)
+    borderSpec: Border.controlSpec(playing ? "selected" : (_hot && enabled ? "hover-cursor" : "normal"),
+                                   root.foreground, root.accent)
+    opacity: enabled || (service.busy && !service.working) ? 1.0 : 0.55
+    Behavior on color { ColorAnimation { duration: Style.duration(100) } }
+
+    MouseArea {
+      id: libraryMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: libraryRow.playing ? Qt.ArrowCursor : Qt.PointingHandCursor
+      onClicked: if (!libraryRow.playing && libraryRow.enabled) service.playEntry(libraryRow.entry.id)
+    }
+
+    Row {
+      id: libraryContent
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.leftMargin: libraryRow.borderLeft + Style.spacing.rowPaddingX
+      anchors.rightMargin: libraryRow.borderRight + Style.spacing.rowPaddingX
+      spacing: Style.space(10)
+
+      Text {
+        textFormat: Text.PlainText
+        text: libraryRow.playing ? "󰕾" : "󰐊"
+        color: libraryRow.playing ? root.accent : root.foreground
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.title
+        width: Style.space(22)
+        horizontalAlignment: Text.AlignHCenter
+        anchors.verticalCenter: parent.verticalCenter
+      }
+      Column {
+        width: parent.width - Style.space(22) - libraryButtons.width - 2 * parent.spacing
+        spacing: Style.spacing.xs
+        anchors.verticalCenter: parent.verticalCenter
+        Text {
+          textFormat: Text.PlainText
+          text: root.libraryTitle(libraryRow.entry)
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.subtitle
+          font.bold: true
+          elide: Text.ElideRight
+          width: parent.width
+        }
+        Text {
+          textFormat: Text.PlainText
+          text: root.libraryDescription(libraryRow.entry)
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.WordWrap
+          width: parent.width
+        }
+      }
+      Row {
+        id: libraryButtons
+        spacing: Style.space(4)
+        anchors.verticalCenter: parent.verticalCenter
+        Button {
+          iconText: "󰐃"
+          tooltipText: libraryRow.entry.pinned === true ? "Unpin" : "Pin: keep it until you unpin it"
+          selected: libraryRow.entry.pinned === true
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          enabled: libraryRow.enabled
+          onClicked: service.pinEntry(libraryRow.entry.id, libraryRow.entry.pinned !== true)
+        }
+        Button {
+          visible: !libraryRow.playing
+          iconText: "󰆴"
+          tooltipText: "Delete from the list"
+          foreground: root.foreground
+          fontFamily: root.fontFamily
+          enabled: libraryRow.enabled
+          onClicked: service.deleteEntry(libraryRow.entry.id)
+        }
+      }
     }
   }
 
@@ -957,12 +1076,12 @@ Panel {
     // Input gain after the sections: trim in protected mode, make-up when louder.
     var net = Number(fit.net_input_gain_db !== undefined ? fit.net_input_gain_db : -(fit.headroom_db || 1))
     context.globalAlpha = 0.55
-    context.strokeStyle = Color.accent
+    context.strokeStyle = root.accent
     context.lineWidth = 1
     context.setLineDash([3, 3])
     context.beginPath(); context.moveTo(padLeft, yFor(net)); context.lineTo(width - padRight, yFor(net)); context.stroke()
     context.setLineDash([])
-    context.fillStyle = Color.accent
+    context.fillStyle = root.accent
     context.textAlign = "left"
     context.textBaseline = "bottom"
     context.globalAlpha = 0.8
@@ -1068,7 +1187,7 @@ Panel {
             visible: service.error !== ""
             width: parent.width
             text: service.error
-            color: bar ? bar.urgent : Color.urgent
+            color: root.urgent
             font.family: root.fontFamily
             font.pixelSize: Style.font.body
             wrapMode: Text.WordWrap
@@ -1092,7 +1211,7 @@ Panel {
             onClicked: {
               var mic = service.microphones[offeredIndex]
               var channel = (mic.internal === true && Number(mic.channels || 1) > 1) ? "all" : 0
-              service.measure(service.sinks[root.sinkIndex].name, mic.name, channel, root.options(), "preview")
+              service.measure(service.sinks[root.sinkIndex].name, mic.name, channel, root.options(), true)
             }
           }
 
@@ -1108,52 +1227,6 @@ Panel {
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
             wrapMode: Text.WordWrap
-          }
-
-          Column {
-            visible: service.status.previewing === true
-            width: parent.width
-            spacing: Style.space(6)
-            Text {
-              textFormat: Text.PlainText
-              width: parent.width
-              text: "A new calibration was measured and is playing now"
-                + (service.status.profile && service.status.profile.created_at
-                   ? " (" + String(service.status.profile.created_at).slice(11, 16) + " UTC)" : "")
-                + ". Nothing is final yet: apply it, or keep the one you had. Hear the previous one "
-                + "switches between the two."
-              color: root.foreground
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.bodySmall
-              wrapMode: Text.WordWrap
-            }
-            ActionRow {
-              width: parent.width
-              icon: "󰄾"
-              label: service.busy && service.phase === "previewapply" ? "Applying…" : "Apply the new calibration"
-              description: "Keeps it; the previous one stays available under Switch profile"
-              enabled: !service.busy
-              onClicked: service.applyPreview()
-            }
-            ActionRow {
-              width: parent.width
-              icon: "󰅖"
-              label: service.busy && service.phase === "previewdiscard" ? "Restoring…" : "Keep the previous calibration"
-              description: "Puts it back; the new measurement stays as the last measurement"
-              enabled: !service.busy
-              onClicked: service.discardPreview()
-            }
-            ActionRow {
-              visible: service.status.compare !== undefined && service.status.compare !== null
-                && service.status.compare.available === true
-              width: parent.width
-              icon: "󰓦"
-              label: service.busy && service.phase === "compare" ? "Switching…"
-                : ((service.status.compare || {}).active === "previous" ? "Hear the new one" : "Hear the previous one")
-              description: "Switches live between the two, level matched"
-              enabled: !service.busy
-              onClicked: service.compare()
-            }
           }
 
           ActionRow {
@@ -1172,7 +1245,7 @@ Panel {
               && service.proposal.quality !== undefined && service.proposal.quality.accepted === false
             width: parent.width
             text: root.qualityIssuesText() + (root.qualityGuidanceText() !== "" ? "\n" + root.qualityGuidanceText() : "")
-            color: bar ? bar.urgent : Color.urgent
+            color: root.urgent
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
             wrapMode: Text.WordWrap
@@ -1188,7 +1261,7 @@ Panel {
               : service.verificationSummary(service.status.verification)
             color: service.status.verification && !service.status.verification.stale
               && service.status.verification.verdict === "fail"
-              ? (bar ? bar.urgent : Color.urgent) : root.dim
+              ? root.urgent : root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
             wrapMode: Text.WordWrap
@@ -1327,15 +1400,67 @@ Panel {
 
           PanelSeparator { foreground: root.foreground }
 
-          // Calibrations other people shared for this model.  Asked about once;
-          // after a yes the list is simply there, and after a no nothing is.
+          // Every calibration that played, one click away: the last ten of
+          // one's own, the pinned ones, and the ones shared for this model.
+          // A click switches live: only the filter's settings change.
           Column {
+            id: libraryColumn
+            readonly property var rows: service.status.library || []
+            property bool expanded: false
+            readonly property int shown: expanded ? rows.length : Math.min(rows.length, 5)
             width: parent.width
             spacing: Style.space(6)
-            visible: service.registry.consent === null
+            visible: rows.length > 0 || service.registry.consent === null
               || (service.registry.consent === "allowed" && (service.registry.profiles || []).length > 0)
 
             PanelSectionHeader {
+              visible: libraryColumn.rows.length > 0
+              text: "CALIBRATIONS"
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+            Text {
+              textFormat: Text.PlainText
+              visible: libraryColumn.rows.length > 1
+              width: parent.width
+              text: "Click one to play it; the sound switches live, without stopping. The last ten you played "
+                + "are kept, and pinned ones until you unpin them."
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              wrapMode: Text.WordWrap
+            }
+            Repeater {
+              model: libraryColumn.rows.slice(0, libraryColumn.shown)
+              LibraryRow {
+                width: parent.width
+                entry: modelData
+                enabled: !service.busy
+              }
+            }
+            ActionRow {
+              visible: libraryColumn.rows.length > 5
+              width: parent.width
+              icon: libraryColumn.expanded ? "󰅃" : "󰅀"
+              label: libraryColumn.expanded ? "Show fewer" : "Show " + (libraryColumn.rows.length - 5) + " more"
+              onClicked: libraryColumn.expanded = !libraryColumn.expanded
+            }
+            Text {
+              textFormat: Text.PlainText
+              visible: root.importedNote() !== ""
+              width: parent.width
+              text: root.importedNote()
+              color: root.importedMismatch() ? root.urgent : root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              wrapMode: Text.WordWrap
+            }
+
+            // Calibrations other people shared for this model.  Asked about once;
+            // after a yes the list is simply there, and after a no nothing is.
+            PanelSectionHeader {
+              visible: service.registry.consent === null
+                || (service.registry.consent === "allowed" && (service.registry.profiles || []).length > 0)
               text: "SHARED FOR THIS MACHINE"
               foreground: root.foreground
               fontFamily: root.fontFamily
@@ -1378,7 +1503,10 @@ Panel {
               }
             }
             Repeater {
-              model: service.registry.consent === "allowed" ? (service.registry.profiles || []).slice(0, 3) : []
+              // The ones already in the list are played from there, above.
+              model: service.registry.consent === "allowed"
+                ? (service.registry.profiles || []).filter(function (entry) { return root.libraryEntryFor(entry.id) === null })
+                : []
               ActionRow {
                 width: parent.width
                 icon: "󰓦"
@@ -1406,7 +1534,7 @@ Panel {
             onClicked: {
               var sink = service.sinks[root.sinkIndex]
               var mic = service.microphones[root.micIndex]
-              service.measure(sink.name, mic.name, root.selectedChannelValue(), root.options(), "preview")
+              service.measure(sink.name, mic.name, root.selectedChannelValue(), root.options(), true)
             }
           }
 
@@ -1418,7 +1546,7 @@ Panel {
             // A failure is said here as well as under the header: whoever
             // pressed the button above is looking at this line, and the header
             // is a screen further up.
-            color: service.error !== "" ? (bar ? bar.urgent : Color.urgent) : root.dim
+            color: service.error !== "" ? root.urgent : root.dim
             font.family: root.fontFamily
             font.pixelSize: service.error !== "" ? Style.font.body : Style.font.bodySmall
             wrapMode: Text.WordWrap
@@ -1894,16 +2022,6 @@ Panel {
                 onClicked: service.refine()
               }
               ActionRow {
-                visible: service.status.enabled && service.status.compare !== undefined
-                  && service.status.compare.available === true
-                width: parent.width
-                icon: "󰓦"
-                label: service.busy && service.phase === "compare" ? "Switching…" : "Switch profile"
-                description: "Play the other stored profile: " + service.otherLabel()
-                enabled: !service.busy
-                onClicked: service.compare()
-              }
-              ActionRow {
                 visible: service.status.enabled
                 width: parent.width
                 icon: "󰅖"
@@ -1952,7 +2070,7 @@ Panel {
                 Text {
                   textFormat: Text.PlainText
                   text: "—  external mic"
-                  color: bar && bar.accent ? bar.accent : Color.accent
+                  color: root.accent
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
                 }
@@ -1997,7 +2115,7 @@ Panel {
               width: parent.width
               text: "Export the calibration that is playing to your Downloads folder and hand the file "
                 + "to someone with the same machine. A shared file dropped into Downloads appears "
-                + "below; loading it makes it the last measurement, ready to install, and says so "
+                + "below; loading it plays it and adds it to your calibrations, and says so "
                 + "when it was made on other hardware."
               color: root.dim
               font.family: root.fontFamily
@@ -2077,17 +2195,6 @@ Panel {
               font.pixelSize: Style.font.caption
               wrapMode: Text.WordWrap
             }
-            Repeater {
-              model: service.registry.consent === "allowed" ? (service.registry.profiles || []).slice(3) : []
-              ActionRow {
-                width: parent.width
-                icon: "󰓦"
-                label: root.registryLabel(modelData)
-                description: root.registryDescription(modelData)
-                enabled: !service.busy
-                onClicked: service.registryLoad(modelData.id)
-              }
-            }
             ActionRow {
               width: parent.width
               icon: "󰖟"
@@ -2129,7 +2236,7 @@ Panel {
                 : "LAST MEASUREMENT  ·  NONE YET"
               foreground: service.proposal && service.proposal.quality
                 && !service.proposal.quality.accepted
-                ? (bar ? bar.urgent : Color.urgent) : root.foreground
+                ? root.urgent : root.foreground
               fontFamily: root.fontFamily
             }
 
@@ -2150,16 +2257,6 @@ Panel {
               }
             }
 
-            Text {
-              textFormat: Text.PlainText
-              visible: root.importedNote() !== ""
-              width: parent.width
-              text: root.importedNote()
-              color: root.importedMismatch() ? (bar ? bar.urgent : Color.urgent) : root.dim
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              wrapMode: Text.WordWrap
-            }
 
             Column {
               visible: root.issueLines().length > 0
@@ -2173,7 +2270,7 @@ Panel {
                   text: "•  " + modelData
                   color: service.proposal && service.proposal.quality
                     && !service.proposal.quality.accepted
-                    ? (bar ? bar.urgent : Color.urgent) : root.dim
+                    ? root.urgent : root.dim
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
                   wrapMode: Text.WordWrap
@@ -2347,7 +2444,7 @@ Panel {
                   if (fit && fit.predicted_response_db) {
                     var predicted = fit.predicted_response_db
                     count = Math.min(frequencies.length, predicted.length)
-                    context.strokeStyle = Color.accent
+                    context.strokeStyle = root.accent
                     context.globalAlpha = 0.95
                     context.lineWidth = 2.0
                     context.setLineDash([7, 4])
@@ -2378,7 +2475,7 @@ Panel {
                   }
                   if (fit && fit.filters) {
                     context.setLineDash([])
-                    context.strokeStyle = Color.accent
+                    context.strokeStyle = root.accent
                     context.globalAlpha = 0.62
                     context.lineWidth = 1.5
                     for (var filterIndex = 0; filterIndex < fit.filters.length; filterIndex++) {
@@ -2452,7 +2549,7 @@ Panel {
                 text: "LAST CHECK  ·  " + String((service.status.verification || {}).verdict || "").toUpperCase()
                   + ((service.status.verification || {}).stale ? "  ·  STALE" : "")
                 foreground: (service.status.verification || {}).verdict === "fail"
-                  ? (bar ? bar.urgent : Color.urgent) : root.foreground
+                  ? root.urgent : root.foreground
                 fontFamily: root.fontFamily
               }
               Column {
@@ -2474,7 +2571,7 @@ Panel {
                     width: parent.width
                     text: "•  " + modelData
                     color: (service.status.verification || {}).verdict === "fail"
-                      ? (bar ? bar.urgent : Color.urgent) : root.dim
+                      ? root.urgent : root.dim
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
                     wrapMode: Text.WordWrap

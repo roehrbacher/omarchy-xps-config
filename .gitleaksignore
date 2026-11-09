@@ -1,2 +1,3 @@
-# False positive: test fixture IDs in the vendored speaker-calibrator tests (line 367).
+# False positive: test fixture IDs in the vendored speaker-calibrator tests.
+overlay/.config/omarchy/plugins/thefreshoffice.speaker-calibrator/tests/test_registry_client.py:generic-api-key:375
 overlay/.config/omarchy/plugins/thefreshoffice.speaker-calibrator/tests/test_registry_client.py:generic-api-key:367

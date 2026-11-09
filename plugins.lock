@@ -3,4 +3,4 @@
 # reviewing the upstream diff from the commit below. Same format as
 # omarchy-shared-config/plugins.lock; the weekly plugin round checks both.
 # id                              upstream repo                                          reviewed commit                            reviewed    notes
-thefreshoffice.speaker-calibrator  https://github.com/thefreshoffice/omarchy-speaker-calibrator  b142b0208cc086adc53dbdad78a73207a3075854  2026-10-16  unmodified
+thefreshoffice.speaker-calibrator  https://github.com/thefreshoffice/omarchy-speaker-calibrator  53a5dd024cfe8fe720bccae31268a32226281430  2026-11-09  unmodified
